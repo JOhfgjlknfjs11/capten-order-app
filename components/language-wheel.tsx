@@ -329,9 +329,6 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
             <div style={{ height: (DIAMETER - 12 - ITEM_HEIGHT) / 2 }} />
           </motion.div>
         </div>
-        {/* end scrollable list */}
-        </div>
-        {/* end content clip layer */}
       </motion.div>
 
       {/* Confirm button */}
