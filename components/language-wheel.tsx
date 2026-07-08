@@ -141,89 +141,81 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
         <div className="mt-3 w-16 h-0.5 bg-accent mx-auto rounded-full" />
       </motion.div>
 
-      {/* Circular wheel container */}
+      {/* Circular wheel container — outer wrapper has NO overflow:hidden so shadows render */}
       <motion.div
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.65, delay: 0.2, ease: 'easeOut' }}
         className="relative flex items-center justify-center"
-        style={{ width: DIAMETER, height: DIAMETER, borderRadius: '50%', overflow: 'hidden' }}
+        style={{ width: DIAMETER, height: DIAMETER }}
       >
-        {/* Neumorphic circle background */}
+        {/* Neumorphic circle background — shadows live here, outside any clip */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
             background: 'oklch(0.975 0.008 85)',
             boxShadow: [
-              '18px 18px 45px oklch(0.82 0.014 78)',
-              '-12px -12px 30px oklch(1 0.003 92)',
-              '6px 6px 12px oklch(0.86 0.01 80)',
-              '-4px -4px 10px oklch(0.99 0.005 90)',
-              'inset 0 0 0 1.5px oklch(0.92 0.009 82 / 0.6)',
+              '22px 22px 55px oklch(0.80 0.016 76)',
+              '-16px -16px 36px oklch(1 0.002 94)',
+              '8px 8px 18px oklch(0.86 0.012 80)',
+              '-5px -5px 12px oklch(0.995 0.004 90)',
+              'inset 0 0 0 2px oklch(0.90 0.010 82 / 0.5)',
+              'inset 0 0 0 4px oklch(0.995 0.003 92 / 0.7)',
             ].join(', '),
           }}
         />
 
-        {/* Inner recessed ring for depth */}
+        {/* Outer rim highlight arc — top-left bright edge */}
         <div
-          className="absolute rounded-full pointer-events-none"
+          className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            inset: 12,
-            boxShadow: [
-              'inset 4px 4px 12px oklch(0.84 0.012 78 / 0.7)',
-              'inset -3px -3px 8px oklch(1 0.003 92 / 0.9)',
-            ].join(', '),
-            borderRadius: '50%',
-          }}
-        />
-
-        {/* Top fade mask — circular clip */}
-        <div
-          className="absolute top-0 left-0 right-0 z-20 pointer-events-none rounded-full"
-          style={{
-            height: '40%',
             background:
-              'linear-gradient(to bottom, oklch(0.975 0.008 85) 0%, oklch(0.975 0.008 85 / 0.75) 55%, transparent 100%)',
-            borderRadius: '50% 50% 0 0 / 50% 50% 0 0',
-          }}
-        />
-        <div
-          className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none"
-          style={{
-            height: '40%',
-            background:
-              'linear-gradient(to top, oklch(0.975 0.008 85) 0%, oklch(0.975 0.008 85 / 0.75) 55%, transparent 100%)',
-            borderRadius: '0 0 50% 50% / 0 0 50% 50%',
+              'radial-gradient(ellipse at 30% 28%, oklch(1 0.003 92 / 0.55) 0%, transparent 55%)',
           }}
         />
 
-        {/* Selection highlight band */}
+        {/* Content clip layer — clips list AND fades strictly to the circle */}
         <div
-          className="absolute z-10 pointer-events-none"
-          style={{
-            left: 32,
-            right: 32,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            height: ITEM_HEIGHT - 10,
-            borderRadius: 14,
-            background: 'oklch(0.42 0.09 210 / 0.07)',
-            boxShadow: [
-              'inset 3px 3px 8px oklch(0.84 0.012 80 / 0.45)',
-              'inset -3px -3px 8px oklch(1 0.003 90 / 0.75)',
-            ].join(', '),
-            border: '1px solid oklch(0.42 0.09 210 / 0.14)',
-          }}
-        />
-
-        {/* Scrollable list clipped to the circle */}
-        <div
-          className="absolute overflow-hidden"
-          style={{
-            inset: 0,
-            borderRadius: '50%',
-          }}
+          className="absolute overflow-hidden rounded-full"
+          style={{ inset: 6 }}
         >
+          {/* Selection highlight band — inside clip so it respects the circle */}
+          <div
+            className="absolute z-10 pointer-events-none"
+            style={{
+              left: 28,
+              right: 28,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              height: ITEM_HEIGHT - 10,
+              borderRadius: 14,
+              background: 'oklch(0.42 0.09 210 / 0.07)',
+              boxShadow: [
+                'inset 3px 3px 8px oklch(0.84 0.012 80 / 0.45)',
+                'inset -3px -3px 8px oklch(1 0.003 90 / 0.75)',
+              ].join(', '),
+              border: '1px solid oklch(0.42 0.09 210 / 0.14)',
+            }}
+          />
+
+          {/* Top fade — clipped to circle by parent overflow:hidden */}
+          <div
+            className="absolute top-0 left-0 right-0 z-20 pointer-events-none"
+            style={{
+              height: '42%',
+              background:
+                'linear-gradient(to bottom, oklch(0.975 0.008 85) 0%, oklch(0.975 0.008 85 / 0.85) 45%, transparent 100%)',
+            }}
+          />
+          {/* Bottom fade */}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none"
+            style={{
+              height: '42%',
+              background:
+                'linear-gradient(to top, oklch(0.975 0.008 85) 0%, oklch(0.975 0.008 85 / 0.85) 45%, transparent 100%)',
+            }}
+          />
           <motion.div
             style={{ y }}
             drag="y"
@@ -237,8 +229,8 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
             onDragEnd={handleDragEnd}
             className="cursor-grab active:cursor-grabbing"
           >
-            {/* Top spacer to center first item */}
-            <div style={{ height: (DIAMETER - ITEM_HEIGHT) / 2 }} />
+            {/* Top spacer to center first item — DIAMETER - 12 (inset:6 each side) */}
+            <div style={{ height: (DIAMETER - 12 - ITEM_HEIGHT) / 2 }} />
 
             {LANGUAGES.map((lang, idx) => {
               const dict = dictionary[lang]
@@ -334,9 +326,10 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
             })}
 
             {/* Bottom spacer */}
-            <div style={{ height: (DIAMETER - ITEM_HEIGHT) / 2 }} />
+            <div style={{ height: (DIAMETER - 12 - ITEM_HEIGHT) / 2 }} />
           </motion.div>
-        </div>
+        </div>{/* end scrollable list */}
+        </div>{/* end content clip layer */}
       </motion.div>
 
       {/* Confirm button */}
