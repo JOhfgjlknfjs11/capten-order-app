@@ -70,7 +70,7 @@
   --secondary: oklch(0.92 0.02 80);
   --secondary-foreground: oklch(0.25 0.02 50);
   --muted: oklch(0.945 0.01 80);
-  --muted-foreground: oklch(0.5 0.02 70);
+  --muted-foreground: oklch(0.32 0.02 55);
   /* Gold accent */
   --accent: oklch(0.78 0.12 75);
   --accent-foreground: oklch(0.15 0.02 50);

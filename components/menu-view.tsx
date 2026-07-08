@@ -181,10 +181,16 @@ export function MenuView({
         <div className="flex items-center gap-2">
           <span className="text-xl">⚓</span>
           <div>
-            <div className="font-sans text-lg font-bold text-foreground leading-tight">
+            <div
+              className="font-sans text-lg font-bold leading-tight"
+              style={{ color: 'oklch(0.12 0.015 50)' }}
+            >
               {dict.restaurantName}
             </div>
-            <div className="font-body text-xs text-muted-foreground leading-none hidden sm:block">
+            <div
+              className="font-body text-xs leading-none hidden sm:block"
+              style={{ color: 'oklch(0.32 0.02 55)' }}
+            >
               {dict.tagline}
             </div>
           </div>
@@ -306,7 +312,7 @@ export function MenuView({
                   background: isActive
                     ? 'oklch(0.42 0.09 210)'
                     : 'oklch(0.99 0.004 85)',
-                  color: isActive ? 'white' : 'oklch(0.45 0.02 70)',
+                  color: isActive ? 'white' : 'oklch(0.25 0.02 55)',
                   boxShadow: isActive
                     ? '4px 4px 12px oklch(0.42 0.09 210 / 0.4), -2px -2px 6px oklch(0.56 0.06 210 / 0.15)'
                     : '4px 4px 10px oklch(0.84 0.012 80), -2px -2px 7px oklch(1 0.003 90)',
