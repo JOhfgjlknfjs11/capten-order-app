@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 
@@ -12,6 +13,37 @@ const ITEM_HEIGHT = 72
 const VISIBLE_ITEMS = 5
 // Circle diameter — must be wide enough for the content
 const DIAMETER = 340
+
+// Map language code → ISO 3166-1 alpha-2 country code for flagcdn.com
+const FLAG_CODE: Record<Language, string> = {
+  en: 'gb',
+  ar: 'eg',
+  ru: 'ru',
+  fr: 'fr',
+  de: 'de',
+  it: 'it',
+  es: 'es',
+  zh: 'cn',
+  ja: 'jp',
+  pt: 'pt',
+  tr: 'tr',
+  ko: 'kr',
+}
+
+function FlagImg({ lang, size = 28 }: { lang: Language; size?: number }) {
+  const code = FLAG_CODE[lang]
+  return (
+    <Image
+      src={`https://flagcdn.com/w40/${code}.png`}
+      alt={dictionary[lang].langName}
+      width={size}
+      height={Math.round(size * 0.75)}
+      className="rounded-sm object-cover"
+      style={{ display: 'block' }}
+      unoptimized
+    />
+  )
+}
 
 // ─── Web Audio tick ──────────────────────────────────────────────────────────
 function playTick() {
@@ -115,7 +147,7 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.65, delay: 0.2, ease: 'easeOut' }}
         className="relative flex items-center justify-center"
-        style={{ width: DIAMETER, height: DIAMETER }}
+        style={{ width: DIAMETER, height: DIAMETER, borderRadius: '50%', overflow: 'hidden' }}
       >
         {/* Neumorphic circle background */}
         <div
@@ -231,7 +263,7 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
                 >
                   {/* Flag badge */}
                   <div
-                    className="flex-shrink-0 flex items-center justify-center text-xl"
+                    className="flex-shrink-0 flex items-center justify-center overflow-hidden"
                     style={{
                       width: 36,
                       height: 36,
@@ -251,10 +283,9 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
                       border: isSelected
                         ? '1.5px solid oklch(0.42 0.09 210 / 0.25)'
                         : '1px solid oklch(0.9 0.01 82 / 0.5)',
-                      lineHeight: 1,
                     }}
                   >
-                    {dict.flag}
+                    <FlagImg lang={lang} size={28} />
                   </div>
 
                   {/* Language names */}
@@ -335,7 +366,9 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <span>{dictionary[LANGUAGES[selectedIndex]].flag}</span>
+            <span className="overflow-hidden rounded-sm" style={{ width: 22, height: 16, display: 'inline-flex', alignItems: 'center' }}>
+              <FlagImg lang={LANGUAGES[selectedIndex]} size={22} />
+            </span>
             <span>{dictionary[LANGUAGES[selectedIndex]].langNative}</span>
           </span>
         )}
