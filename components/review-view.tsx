@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Minus, Plus, Trash2, ChevronDown, ArrowLeft } from 'lucide-react'
 import { type Language, dictionary } from '@/lib/dictionary'
-import { type MenuItem } from '@/lib/menu-data'
+import { getItemName, type MenuItem } from '@/lib/menu-data'
 
 interface CartItem {
   item: MenuItem
@@ -125,7 +125,7 @@ export function ReviewView({
                     <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
                       <Image
                         src={cartItem.item.image}
-                        alt={cartItem.item.nameEn}
+                        alt={getItemName(cartItem.item, language)}
                         fill
                         className="object-cover"
                         sizes="80px"
@@ -135,7 +135,7 @@ export function ReviewView({
                     {/* Details */}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-sans text-sm font-bold text-foreground leading-tight">
-                        {cartItem.item.nameEn}
+                        {getItemName(cartItem.item, language)}
                       </h3>
                       <p
                         className="font-sans text-base font-bold mt-0.5"

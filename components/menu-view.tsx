@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, ChevronDown, Check, Globe } from 'lucide-react'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
-import { MENU_ITEMS, type Category, type MenuItem } from '@/lib/menu-data'
+import { MENU_ITEMS, getItemName, getItemDescription, type Category, type MenuItem } from '@/lib/menu-data'
 
 interface CartItem {
   item: MenuItem
@@ -38,11 +38,13 @@ const BADGE_COLORS: Record<string, string> = {
 function FoodCard({
   item,
   dict,
+  language,
   onAdd,
   added,
 }: {
   item: MenuItem
   dict: ReturnType<typeof dictionary[Language]>
+  language: Language
   onAdd: () => void
   added: boolean
 }) {
@@ -72,7 +74,7 @@ function FoodCard({
       <div className="relative h-48 overflow-hidden">
         <Image
           src={item.image}
-          alt={item.nameEn}
+          alt={getItemName(item, language)}
           fill
           className="object-cover transition-transform duration-500 hover:scale-105"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -90,10 +92,10 @@ function FoodCard({
       {/* Content */}
       <div className="p-4">
         <h3 className="font-sans text-base font-bold text-foreground leading-tight mb-1">
-          {item.nameEn}
+          {getItemName(item, language)}
         </h3>
         <p className="font-body text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-          {item.descriptionEn}
+          {getItemDescription(item, language)}
         </p>
 
         <div className="flex items-center justify-between">
@@ -337,6 +339,7 @@ export function MenuView({
                 key={item.id}
                 item={item}
                 dict={dict}
+                language={language}
                 onAdd={() => handleAdd(item)}
                 added={recentlyAdded.has(item.id)}
               />

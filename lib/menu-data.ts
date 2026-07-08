@@ -1,4 +1,11 @@
+import { type Language } from '@/lib/dictionary'
+
 export type Category = 'seafood' | 'steaks' | 'egyptian' | 'cocktails'
+
+export interface MenuItemTranslation {
+  name: string
+  description: string
+}
 
 export interface MenuItem {
   id: string
@@ -8,10 +15,19 @@ export interface MenuItem {
   price: number
   image: string
   badge?: 'Chef' | 'Popular' | 'New' | 'Vegan'
+  translations: Record<Language, MenuItemTranslation>
+}
+
+export function getItemName(item: MenuItem, lang: Language): string {
+  return item.translations[lang]?.name ?? item.nameEn
+}
+
+export function getItemDescription(item: MenuItem, lang: Language): string {
+  return item.translations[lang]?.description ?? item.descriptionEn
 }
 
 export const MENU_ITEMS: MenuItem[] = [
-  // RED SEA SEAFOOD
+  // ─── RED SEA SEAFOOD ───────────────────────────────────────────────────────
   {
     id: 'sf-1',
     category: 'seafood',
@@ -20,6 +36,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 38.0,
     image: '/images/seafood-grilled-fish.png',
     badge: 'Chef',
+    translations: {
+      en: { name: 'Red Sea Grilled Fish', description: 'Freshly caught daily, grilled with lemon herb butter and seasonal vegetables' },
+      ar: { name: 'سمك البحر الأحمر المشوي', description: 'طازج يومياً، مشوي بزبدة الليمون والأعشاب مع الخضار الموسمية' },
+      ru: { name: 'Рыба-гриль с Красного моря', description: 'Свежевыловленная ежедневно, на гриле с лимонным маслом и сезонными овощами' },
+      fr: { name: 'Poisson grillé de la mer Rouge', description: 'Pêche fraîche du jour, grillé au beurre citron-herbes avec légumes de saison' },
+      de: { name: 'Gegrillter Rotmeer-Fisch', description: 'Täglich frisch gefangen, gegrillt mit Zitronen-Kräuterbutter und Saisongemüse' },
+      it: { name: 'Pesce grigliato del Mar Rosso', description: 'Pescato fresco ogni giorno, grigliato con burro al limone ed erbe e verdure di stagione' },
+      es: { name: 'Pescado a la plancha del Mar Rojo', description: 'Captura fresca del día, a la plancha con mantequilla de limón y hierbas y verduras de temporada' },
+      zh: { name: '红海烤鱼', description: '每日新鲜捕捞，配柠檬香草黄油与时令蔬菜炭烤' },
+      ja: { name: '紅海グリルフィッシュ', description: '毎日水揚げされた新鮮な魚をレモンハーブバターで香ばしくグリル、季節野菜添え' },
+      pt: { name: 'Peixe grelhado do Mar Vermelho', description: 'Capturado fresco diariamente, grelhado com manteiga de ervas e limão e legumes da época' },
+      tr: { name: 'Kızıldeniz Izgara Balık', description: 'Her gün taze yakalanmış, limonlu ve otlu tereyağıyla ızgara ve mevsim sebzeleri ile' },
+      ko: { name: '홍해 그릴 생선', description: '매일 신선하게 잡은 생선을 레몬 허브 버터로 구워 제철 채소와 함께 제공' },
+    },
   },
   {
     id: 'sf-2',
@@ -29,6 +59,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 89.0,
     image: '/images/seafood-platter.png',
     badge: 'Popular',
+    translations: {
+      en: { name: 'Royal Seafood Platter', description: 'Lobster, king prawns, scallops, and oysters on crushed Red Sea ice' },
+      ar: { name: 'طبق المأكولات البحرية الملكي', description: 'جراد البحر وروبيان الملك والإسكالوب والمحار على ثلج البحر الأحمر المجروش' },
+      ru: { name: 'Королевское ассорти морепродуктов', description: 'Лобстер, королевские креветки, морские гребешки и устрицы на колотом льду Красного моря' },
+      fr: { name: 'Plateau royal de fruits de mer', description: 'Homard, crevettes royales, noix de Saint-Jacques et huîtres sur glace pilée de mer Rouge' },
+      de: { name: 'Königliche Meeresfrüchteplatte', description: 'Hummer, Riesengarnelen, Jakobsmuscheln und Austern auf gestoßenem Rotmeer-Eis' },
+      it: { name: 'Piatto reale di frutti di mare', description: 'Aragosta, gamberi reali, capesante e ostriche su ghiaccio tritato del Mar Rosso' },
+      es: { name: 'Bandeja real de mariscos', description: 'Langosta, gambas reales, vieiras y ostras sobre hielo triturado del Mar Rojo' },
+      zh: { name: '皇家海鲜拼盘', description: '龙虾、大虾、扇贝与生蚝，铺于红海碎冰之上' },
+      ja: { name: 'ロイヤルシーフードプラッター', description: 'ロブスター、有頭エビ、ホタテ、牡蠣を紅海の砕氷の上に盛り付け' },
+      pt: { name: 'Bandeja real de frutos do mar', description: 'Lagosta, camarão rei, vieiras e ostras sobre gelo triturado do Mar Vermelho' },
+      tr: { name: 'Kraliyet Deniz Ürünleri Tabağı', description: 'Istakoz, karides, tarak ve istiridye; Kızıldeniz kırık buz üzerinde servis edilir' },
+      ko: { name: '로얄 해산물 플래터', description: '랍스터, 킹 새우, 가리비, 굴을 홍해 얼음 위에 담아 제공' },
+    },
   },
   {
     id: 'sf-3',
@@ -37,8 +81,23 @@ export const MENU_ITEMS: MenuItem[] = [
     descriptionEn: 'Golden-fried Red Sea calamari rings with house aioli and fresh lemon',
     price: 24.0,
     image: '/images/calamari.png',
+    translations: {
+      en: { name: 'Crispy Calamari', description: 'Golden-fried Red Sea calamari rings with house aioli and fresh lemon' },
+      ar: { name: 'كالاماري مقرمش', description: 'حلقات حبار البحر الأحمر المقلية ذهبياً مع صوص الأيولي وعصير الليمون الطازج' },
+      ru: { name: 'Хрустящие кальмары', description: 'Золотистые кольца кальмара из Красного моря с домашним айоли и свежим лимоном' },
+      fr: { name: 'Calamars croustillants', description: "Anneaux de calamars de la mer Rouge frits dorés, avec aïoli maison et citron frais" },
+      de: { name: 'Knusprige Calamari', description: 'Goldgebackene Rote-Meer-Calamari-Ringe mit Haus-Aioli und frischer Zitrone' },
+      it: { name: 'Calamari croccanti', description: 'Anelli di calamari del Mar Rosso fritti dorati con aioli della casa e limone fresco' },
+      es: { name: 'Calamares crujientes', description: 'Anillos de calamar del Mar Rojo fritos dorados con alioli casero y limón fresco' },
+      zh: { name: '香脆鱿鱼圈', description: '红海鱿鱼圈炸至金黄，搭配自制蒜泥蛋黄酱与鲜柠檬' },
+      ja: { name: 'クリスピーカラマリ', description: '紅海産のイカリングを黄金色に揚げ、自家製アイオリと新鮮なレモン添え' },
+      pt: { name: 'Calamares crocantes', description: 'Anéis de lula do Mar Vermelho fritos dourados com aioli da casa e limão fresco' },
+      tr: { name: 'Çıtır Kalamar', description: 'Altın kızartılmış Kızıldeniz kalamar halkaları, ev yapımı aioli ve taze limon ile' },
+      ko: { name: '바삭한 칼라마리', description: '황금빛으로 튀긴 홍해 오징어 링에 홈메이드 아이올리와 신선한 레몬 곁들임' },
+    },
   },
-  // PREMIUM STEAKS
+
+  // ─── PREMIUM STEAKS ────────────────────────────────────────────────────────
   {
     id: 'st-1',
     category: 'steaks',
@@ -47,6 +106,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 145.0,
     image: '/images/wagyu-steak.png',
     badge: 'Chef',
+    translations: {
+      en: { name: 'Wagyu Ribeye A5', description: 'Japanese A5 Wagyu with truffle butter, roasted garlic, and asparagus' },
+      ar: { name: 'واغيو ريباي A5', description: 'واغيو ياباني درجة A5 بزبدة الكمأة والثوم المحمص والهليون' },
+      ru: { name: 'Вагю Рибай A5', description: 'Японский Вагю A5 с трюфельным маслом, жареным чесноком и спаржей' },
+      fr: { name: 'Wagyu Côte de Bœuf A5', description: 'Wagyu japonais A5 au beurre de truffe, ail rôti et asperges' },
+      de: { name: 'Wagyu Ribeye A5', description: 'Japanisches Wagyu A5 mit Trüffelbutter, geröstetem Knoblauch und Spargel' },
+      it: { name: 'Wagyu Ribeye A5', description: 'Wagyu giapponese A5 con burro al tartufo, aglio arrostito e asparagi' },
+      es: { name: 'Wagyu Ribeye A5', description: 'Wagyu japonés A5 con mantequilla de trufa, ajo asado y espárragos' },
+      zh: { name: '和牛肋眼 A5', description: '日本 A5 和牛配松露黄油、烤蒜与芦笋' },
+      ja: { name: 'A5 和牛リブアイ', description: '日本産A5和牛にトリュフバター、ローストガーリック、アスパラガスを添えて' },
+      pt: { name: 'Wagyu Ribeye A5', description: 'Wagyu japonês A5 com manteiga de trufas, alho assado e espargos' },
+      tr: { name: 'Wagyu Ribeye A5', description: 'Japon A5 Wagyu, truffle tereyağı, kızarmış sarımsak ve kuşkonmaz ile' },
+      ko: { name: '와규 립아이 A5', description: '일본산 A5 와규에 트러플 버터, 로스트 갈릭, 아스파라거스 곁들임' },
+    },
   },
   {
     id: 'st-2',
@@ -56,6 +129,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 68.0,
     image: '/images/lamb-chops.png',
     badge: 'Popular',
+    translations: {
+      en: { name: 'Herb-Crusted Rack of Lamb', description: 'French-trimmed lamb with pomegranate reduction and grilled vegetables' },
+      ar: { name: 'ضلوع الخروف بقشرة الأعشاب', description: 'لحم ضأن مشذّب على الطريقة الفرنسية مع صوص الرمان والخضار المشوية' },
+      ru: { name: 'Каре ягненка в травяной корочке', description: 'Ягненок по-французски с гранатовым соусом и овощами на гриле' },
+      fr: { name: "Carré d'agneau en croûte d'herbes", description: "Agneau paré à la française avec réduction de grenade et légumes grillés" },
+      de: { name: 'Kräuterkruste-Lammkarree', description: 'Französisch zugeschnittenes Lamm mit Granatapfelreduktion und Grillgemüse' },
+      it: { name: 'Rack di agnello in crosta di erbe', description: 'Agnello taglio francese con riduzione di melograno e verdure grigliate' },
+      es: { name: 'Costillar de cordero en costra de hierbas', description: 'Cordero al estilo francés con reducción de granada y verduras a la plancha' },
+      zh: { name: '香草烤羊排', description: '法式修整羊排配石榴浓缩酱汁与炭烤蔬菜' },
+      ja: { name: 'ハーブ・クラスト・ラックオブラム', description: 'フレンチトリムのラム肉にザクロのリダクションとグリル野菜を添えて' },
+      pt: { name: 'Carré de borrego em crosta de ervas', description: 'Borrego french-trimmed com redução de romã e legumes grelhados' },
+      tr: { name: 'Otlu Kabuklu Kuzu Pirzolası', description: 'Fransız usulü kuzu eti, nar sosu ve ızgara sebzeler ile servis edilir' },
+      ko: { name: '허브 크러스트 양갈비', description: '프렌치 트리밍 양고기에 석류 소스와 그릴 채소 곁들임' },
+    },
   },
   {
     id: 'st-3',
@@ -64,16 +151,45 @@ export const MENU_ITEMS: MenuItem[] = [
     descriptionEn: 'Premium center-cut fillet with morel mushroom sauce and potato gratin',
     price: 75.0,
     image: '/images/fillet-steak.png',
+    translations: {
+      en: { name: 'Beef Tenderloin Fillet', description: 'Premium center-cut fillet with morel mushroom sauce and potato gratin' },
+      ar: { name: 'فيليه لحم البقر', description: 'قطعة مركزية فاخرة مع صوص فطر المورل وغراتان البطاطس' },
+      ru: { name: 'Говяжье филе', description: 'Премиальное центральное филе с соусом из сморчков и картофельным гратеном' },
+      fr: { name: 'Filet de bœuf', description: 'Filet central premium avec sauce morilles et gratin dauphinois' },
+      de: { name: 'Rinderfilet', description: 'Hochwertiges Mittelstück-Filet mit Morchelsauce und Kartoffelgratin' },
+      it: { name: 'Filetto di manzo', description: 'Filetto centro taglio premium con salsa di spugnole e gratin di patate' },
+      es: { name: 'Solomillo de ternera', description: 'Filete de corte central premium con salsa de setas morillas y gratín de patatas' },
+      zh: { name: '牛里脊菲力', description: '顶级中心切菲力配羊肚菌酱汁与焗烤土豆' },
+      ja: { name: 'ビーフ・テンダーロイン・フィレ', description: 'プレミアムセンターカットフィレにモレルマッシュルームソースとポテトグラタン添え' },
+      pt: { name: 'Filete de vaca', description: 'Filete de corte central premium com molho de cogumelos morillas e gratinado de batata' },
+      tr: { name: 'Dana Fileto', description: 'Birinci kalite orta kesim fileto, kuzu mantarı sosu ve patates grateni ile' },
+      ko: { name: '소 안심 필레', description: '프리미엄 센터컷 필레에 모렐 버섯 소스와 감자 그라탱 곁들임' },
+    },
   },
-  // TRADITIONAL EGYPTIAN
+
+  // ─── TRADITIONAL EGYPTIAN ──────────────────────────────────────────────────
   {
     id: 'eg-1',
     category: 'egyptian',
     nameEn: 'Koshari Royal',
-    descriptionEn: 'Egypt\'s national dish — rice, lentils, pasta, crispy onions and spiced tomato',
+    descriptionEn: "Egypt's national dish — rice, lentils, pasta, crispy onions and spiced tomato",
     price: 18.0,
     image: '/images/koshari.png',
     badge: 'Vegan',
+    translations: {
+      en: { name: 'Koshari Royal', description: "Egypt's national dish — rice, lentils, pasta, crispy onions and spiced tomato" },
+      ar: { name: 'كشري ملكي', description: 'الطبق الوطني المصري — أرز وعدس ومكرونة وبصل مقرمش وصوص طماطم متبّل' },
+      ru: { name: 'Кушари Роял', description: 'Национальное блюдо Египта — рис, чечевица, паста, хрустящий лук и острый томатный соус' },
+      fr: { name: 'Koshari Royal', description: "Le plat national égyptien — riz, lentilles, pâtes, oignons croustillants et sauce tomate épicée" },
+      de: { name: 'Koshari Royal', description: "Ägyptens Nationalgericht — Reis, Linsen, Pasta, knusprige Zwiebeln und gewürzte Tomatensoße" },
+      it: { name: 'Koshari Reale', description: "Il piatto nazionale egiziano — riso, lenticchie, pasta, cipolle croccanti e pomodoro speziato" },
+      es: { name: 'Koshari Real', description: "El plato nacional de Egipto — arroz, lentejas, pasta, cebolla crujiente y tomate especiado" },
+      zh: { name: '皇家科沙里', description: '埃及国菜——米饭、扁豆、意面、炸洋葱与香料番茄酱' },
+      ja: { name: 'コシャリ・ロイヤル', description: 'エジプトの国民食 — ライス、レンズ豆、パスタ、クリスピーオニオンにスパイシートマトソース' },
+      pt: { name: 'Koshari Real', description: "O prato nacional do Egito — arroz, lentilhas, massa, cebola crocante e tomate temperado" },
+      tr: { name: 'Koshari Royal', description: "Mısır'ın ulusal yemeği — pilav, mercimek, makarna, çıtır soğan ve baharatlı domates sosu" },
+      ko: { name: '코샤리 로얄', description: '이집트 국민 음식 — 쌀, 렌틸콩, 파스타, 바삭한 양파, 향신료 토마토 소스' },
+    },
   },
   {
     id: 'eg-2',
@@ -83,6 +199,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 32.0,
     image: '/images/kofta.png',
     badge: 'Popular',
+    translations: {
+      en: { name: 'Kofta & Tahini', description: 'Charcoal-grilled spiced kofta with tahini, pita bread, and pickled vegetables' },
+      ar: { name: 'كفتة وطحينة', description: 'كفتة متبّلة مشوية على الفحم مع الطحينة والخبز البلدي والخضار المخللة' },
+      ru: { name: 'Кофта и тахини', description: 'Пряная кофта на древесном угле с тахини, питой и маринованными овощами' },
+      fr: { name: 'Kofta et tahini', description: "Kofta épicée grillée au charbon avec tahini, pain pita et légumes marinés" },
+      de: { name: 'Kofta & Tahini', description: 'Holzkohlegegrillte gewürzte Kofta mit Tahini, Pitabrot und eingelegtem Gemüse' },
+      it: { name: 'Kofta e Tahini', description: 'Kofta speziata alla brace con tahini, pita e verdure in salamoia' },
+      es: { name: 'Kofta y Tahini', description: 'Kofta especiada a la brasa con tahini, pan de pita y verduras encurtidas' },
+      zh: { name: '烤肉丸与芝麻酱', description: '炭火烤香料肉丸配芝麻酱、皮塔饼与腌渍蔬菜' },
+      ja: { name: 'コフタ & タヒニ', description: '炭火焼きスパイスコフタにタヒニ、ピタパン、ピクルス野菜を添えて' },
+      pt: { name: 'Kofta e Tahini', description: 'Kofta grelhada no carvão com tahini, pão pita e legumes em conserva' },
+      tr: { name: 'Köfte ve Tahin', description: 'Kömürde ızgara baharatlı köfte, tahin, pide ve turşu sebzeler ile' },
+      ko: { name: '코프타 & 타히니', description: '숯불에 구운 향신료 코프타에 타히니, 피타빵, 절임 채소 곁들임' },
+    },
   },
   {
     id: 'eg-3',
@@ -92,8 +222,23 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 28.0,
     image: '/images/mezze.png',
     badge: 'New',
+    translations: {
+      en: { name: 'Mezze Royale', description: 'Hummus, baba ganoush, falafel, tabbouleh, and freshly baked pita' },
+      ar: { name: 'مزة ملكية', description: 'حمص وبابا غنوج وفلافل وتبولة وخبز بلدي طازج' },
+      ru: { name: 'Мезе Роял', description: 'Хумус, баба-гануш, фалафель, табуле и свежая пита' },
+      fr: { name: 'Mezze Royale', description: 'Houmous, baba ganoush, falafel, taboulé et pain pita fraîchement cuit' },
+      de: { name: 'Mezze Royale', description: 'Hummus, Baba Ganoush, Falafel, Taboulé und frisch gebackenes Pitabrot' },
+      it: { name: 'Mezze Royale', description: 'Hummus, baba ganoush, falafel, tabbouleh e pita fresca sfornata' },
+      es: { name: 'Mezze Royale', description: 'Hummus, baba ganoush, falafel, tabulé y pita recién horneada' },
+      zh: { name: '皇家梅泽拼盘', description: '鹰嘴豆泥、茄泥、法拉费尔、塔布勒沙拉与现烤皮塔饼' },
+      ja: { name: 'メゼ・ロイヤル', description: 'フムス、ババガヌーシュ、ファラフェル、タブーレ、焼きたてピタパン' },
+      pt: { name: 'Mezze Royale', description: 'Hummus, baba ganoush, falafel, tabbouleh e pita recém-assada' },
+      tr: { name: 'Mezze Royale', description: 'Humus, baba ganuş, falafel, tabule ve taze pişirilmiş pide' },
+      ko: { name: '메제 로얄', description: '후무스, 바바 가누시, 팔라펠, 타불레, 갓 구운 피타빵' },
+    },
   },
-  // EXOTIC COCKTAILS
+
+  // ─── EXOTIC COCKTAILS ──────────────────────────────────────────────────────
   {
     id: 'ck-1',
     category: 'cocktails',
@@ -102,6 +247,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 22.0,
     image: '/images/blue-lagoon.png',
     badge: 'Popular',
+    translations: {
+      en: { name: 'Red Sea Blue Lagoon', description: 'Blue curaçao, tropical vodka, fresh lemon, and sparkling water' },
+      ar: { name: 'بحيرة البحر الأحمر الزرقاء', description: 'كوراساو أزرق وفودكا استوائية وليمون طازج وماء فوار' },
+      ru: { name: 'Голубая лагуна Красного моря', description: 'Голубой кюрасао, тропическая водка, свежий лимон и газированная вода' },
+      fr: { name: 'Lagon bleu de la mer Rouge', description: 'Curaçao bleu, vodka tropicale, citron frais et eau pétillante' },
+      de: { name: 'Rotes Meer Blaue Lagune', description: 'Blauer Curaçao, Tropische Vodka, frische Zitrone und Sprudelwasser' },
+      it: { name: 'Laguna blu del Mar Rosso', description: 'Curaçao blu, vodka tropicale, limone fresco e acqua frizzante' },
+      es: { name: 'Laguna azul del Mar Rojo', description: 'Curaçao azul, vodka tropical, limón fresco y agua con gas' },
+      zh: { name: '红海蓝礁湖', description: '蓝橙皮酒、热带伏特加、鲜柠檬与苏打水' },
+      ja: { name: '紅海ブルーラグーン', description: 'ブルーキュラソー、トロピカルウォッカ、フレッシュレモン、スパークリングウォーター' },
+      pt: { name: 'Lagoa Azul do Mar Vermelho', description: 'Curaçao azul, vodka tropical, limão fresco e água com gás' },
+      tr: { name: 'Kızıldeniz Mavi Lagün', description: 'Mavi curaçao, tropikal votka, taze limon ve maden suyu' },
+      ko: { name: '홍해 블루 라군', description: '블루 큐라소, 트로피컬 보드카, 신선한 레몬, 탄산수' },
+    },
   },
   {
     id: 'ck-2',
@@ -111,6 +270,20 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 18.0,
     image: '/images/tropical-punch.png',
     badge: 'New',
+    translations: {
+      en: { name: 'Tropical Sunset Punch', description: 'Mango, passion fruit, pineapple, grenadine, and premium rum' },
+      ar: { name: 'بونش الغروب الاستوائي', description: 'مانجو وفاكهة العاطفة وأناناس وغرينادين وروم فاخر' },
+      ru: { name: 'Тропический закатный пунш', description: 'Манго, маракуйя, ананас, гренадин и премиальный ром' },
+      fr: { name: 'Punch coucher de soleil tropical', description: 'Mangue, fruit de la passion, ananas, grenadine et rhum premium' },
+      de: { name: 'Tropischer Sonnenuntergangs-Punch', description: 'Mango, Passionsfrucht, Ananas, Grenadine und Premium-Rum' },
+      it: { name: 'Punch tropicale al tramonto', description: 'Mango, frutto della passione, ananas, granatina e rum premium' },
+      es: { name: 'Ponche de puesta de sol tropical', description: 'Mango, maracuyá, piña, granadina y ron premium' },
+      zh: { name: '热带日落宾治', description: '芒果、百香果、菠萝、石榴糖浆与顶级朗姆酒' },
+      ja: { name: 'トロピカル・サンセット・パンチ', description: 'マンゴー、パッションフルーツ、パイナップル、グレナデン、プレミアムラム' },
+      pt: { name: 'Punch tropical ao pôr do sol', description: 'Manga, maracujá, ananás, granadine e rum premium' },
+      tr: { name: 'Tropikal Gün Batımı Punch', description: 'Mango, çarkıfelek meyvesi, ananas, grenadine ve premium rom' },
+      ko: { name: '트로피컬 선셋 펀치', description: '망고, 패션프루트, 파인애플, 그레나딘, 프리미엄 럼' },
+    },
   },
   {
     id: 'ck-3',
@@ -119,5 +292,19 @@ export const MENU_ITEMS: MenuItem[] = [
     descriptionEn: 'Havana Club rum, fresh mint, lime juice, brown sugar, and club soda',
     price: 16.0,
     image: '/images/mojito.png',
+    translations: {
+      en: { name: 'Classic Mojito', description: 'Havana Club rum, fresh mint, lime juice, brown sugar, and club soda' },
+      ar: { name: 'موهيتو كلاسيكي', description: 'روم هافانا كلوب ونعناع طازج وعصير ليمون أخضر وسكر بني وصودا' },
+      ru: { name: 'Классический мохито', description: 'Ром Havana Club, свежая мята, сок лайма, коричневый сахар и содовая' },
+      fr: { name: 'Mojito classique', description: 'Rhum Havana Club, menthe fraîche, jus de citron vert, sucre roux et soda' },
+      de: { name: 'Klassischer Mojito', description: 'Havana Club Rum, frische Minze, Limettensaft, brauner Zucker und Club Soda' },
+      it: { name: 'Mojito classico', description: 'Rum Havana Club, menta fresca, succo di lime, zucchero di canna e soda' },
+      es: { name: 'Mojito clásico', description: 'Ron Havana Club, menta fresca, zumo de lima, azúcar moreno y soda' },
+      zh: { name: '经典莫吉托', description: '哈瓦那俱乐部朗姆酒、新鲜薄荷、青柠汁、红糖与苏打水' },
+      ja: { name: 'クラシックモヒート', description: 'ハバナクラブラム、フレッシュミント、ライムジュース、ブラウンシュガー、クラブソーダ' },
+      pt: { name: 'Mojito clássico', description: 'Rum Havana Club, hortelã fresca, sumo de lima, açúcar mascavo e soda' },
+      tr: { name: 'Klasik Mojito', description: 'Havana Club rom, taze nane, misket limonu suyu, esmer şeker ve soda' },
+      ko: { name: '클래식 모히토', description: '하바나 클럽 럼, 신선한 민트, 라임 주스, 흑설탕, 클럽 소다' },
+    },
   },
 ]
