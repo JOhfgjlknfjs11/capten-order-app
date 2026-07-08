@@ -164,7 +164,7 @@ export function MenuView({
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="min-h-screen flex flex-col bg-background"
       dir={dict.rtl ? 'rtl' : 'ltr'}
     >
       {/* Navbar */}

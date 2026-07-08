@@ -64,7 +64,7 @@ export function TrackingView({ language, orderNumber, onNewOrder }: TrackingView
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start pt-8 pb-12 px-4"
+      className="min-h-screen flex flex-col items-center justify-start pt-8 pb-12 px-4 bg-background"
       dir={dict.rtl ? 'rtl' : 'ltr'}
     >
       {/* Header */}
