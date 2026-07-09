@@ -46,90 +46,73 @@ export async function textToSpeech(
 }
 
 /**
- * تشغيل الصوت من ArrayBuffer (MP3)
- * يعيد محاولة إذا فشل بسبب autoplay restriction
+ * تشغيل الصوت من ArrayBuffer (MP3) باستخدام Web Audio API
  */
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
   return new Promise((resolve) => {
     try {
-      // Create Blob from ArrayBuffer
-      const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
-      const url = URL.createObjectURL(blob)
-
-      // Create audio element
-      const audio = new Audio()
-      audio.src = url
-      audio.type = 'audio/mpeg'
-      audio.crossOrigin = 'anonymous'
-      audio.preload = 'auto'
-
-      let resolved = false
-      const cleanup = () => {
-        if (!resolved) {
-          resolved = true
-          URL.revokeObjectURL(url)
-          resolve()
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      
+      audioContext.decodeAudioData(
+        audioBuffer.slice(0),
+        (decodedData) => {
+          const source = audioContext.createBufferSource()
+          source.buffer = decodedData
+          source.connect(audioContext.destination)
+          
+          source.onended = () => {
+            resolve()
+          }
+          
+          // 35 second timeout safety
+          const timeout = setTimeout(() => {
+            resolve()
+          }, 35000)
+          
+          source.start(0)
+        },
+        (error) => {
+          // If decode fails, fallback to Audio element
+          fallbackAudioPlayback(audioBuffer, resolve)
         }
-      }
-
-      audio.onended = () => {
-        cleanup()
-      }
-
-      audio.onerror = () => {
-        cleanup()
-      }
-
-      // Timeout safety - 35 seconds
-      const timeout = setTimeout(() => {
-        cleanup()
-      }, 35000)
-
-      // Helper to trigger play with user gesture if needed
-      const attemptPlay = () => {
-        const playPromise = audio.play()
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise
-            .then(() => {
-              // Audio started successfully
-            })
-            .catch((playError: any) => {
-              // If blocked by autoplay policy, add click listener to document
-              if (playError?.name === 'NotAllowedError') {
-                const handleUserInteraction = () => {
-                  audio.play()
-                    .catch(() => {
-                      // Silent fail on subsequent attempts
-                    })
-                    .finally(() => {
-                      document.removeEventListener('click', handleUserInteraction, true)
-                      document.removeEventListener('touchstart', handleUserInteraction, true)
-                    })
-                }
-                
-                // Listen for any user interaction
-                document.addEventListener('click', handleUserInteraction, true)
-                document.addEventListener('touchstart', handleUserInteraction, true)
-                
-                // Timeout waiting for interaction
-                setTimeout(() => {
-                  document.removeEventListener('click', handleUserInteraction, true)
-                  document.removeEventListener('touchstart', handleUserInteraction, true)
-                  cleanup()
-                }, 5000)
-              } else {
-                clearTimeout(timeout)
-                cleanup()
-              }
-            })
-        }
-      }
-
-      attemptPlay()
+      )
     } catch (error) {
-      resolve()
+      fallbackAudioPlayback(audioBuffer, resolve)
     }
   })
+}
+
+/**
+ * Fallback to Audio element if Web Audio API fails
+ */
+function fallbackAudioPlayback(audioBuffer: ArrayBuffer, resolve: () => void): void {
+  try {
+    const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
+    const url = URL.createObjectURL(blob)
+    const audio = new Audio()
+    audio.src = url
+
+    let isDone = false
+    const cleanup = () => {
+      if (!isDone) {
+        isDone = true
+        URL.revokeObjectURL(url)
+        resolve()
+      }
+    }
+
+    audio.onended = cleanup
+    audio.onerror = cleanup
+    
+    const timeout = setTimeout(cleanup, 35000)
+    
+    audio.play().catch((err) => {
+      clearTimeout(timeout)
+      cleanup()
+    })
+  } catch (error) {
+    resolve()
+  }
 }
 
 /**
