@@ -12,15 +12,17 @@ interface LanguageWheelProps {
 }
 
 // أحجام متجاوبة حسب حجم الشاشة
-// على الهواتف الصغيرة: ITEM_HEIGHT=56، على الأجهزة الكبيرة: ITEM_HEIGHT=72
 const getResponsiveDimensions = () => {
   if (typeof window === 'undefined') {
-    return { ITEM_HEIGHT: 72, DIAMETER: 340 }
+    return { ITEM_HEIGHT: 56, DIAMETER: 280 }
   }
   const width = window.innerWidth
   if (width < 480) {
     // الهواتف الصغيرة جداً
-    return { ITEM_HEIGHT: 48, DIAMETER: 280 }
+    return { ITEM_HEIGHT: 48, DIAMETER: 260 }
+  } else if (width < 640) {
+    // الهواتف الصغيرة
+    return { ITEM_HEIGHT: 52, DIAMETER: 270 }
   } else if (width < 768) {
     // الهواتف والأجهزة اللوحية الصغيرة
     return { ITEM_HEIGHT: 56, DIAMETER: 300 }
@@ -33,10 +35,7 @@ const getResponsiveDimensions = () => {
   }
 }
 
-const ITEM_HEIGHT = 72
 const VISIBLE_ITEMS = 5
-// Circle diameter — must be wide enough for the content
-const DIAMETER = 340
 
 // Map language code → ISO 3166-1 alpha-2 country code for flagcdn.com
 const FLAG_CODE: Record<Language, string> = {
@@ -245,7 +244,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.65, delay: 0.2, ease: 'easeOut' }}
         className="relative flex items-center justify-center"
-        style={{ width: DIAMETER, height: DIAMETER }}
+        style={{ width: dims.DIAMETER, height: dims.DIAMETER }}
       >
         {/* Neumorphic circle background — shadows live here, outside any clip */}
         <div
@@ -285,7 +284,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
               right: 28,
               top: '50%',
               transform: 'translateY(-50%)',
-              height: ITEM_HEIGHT - 10,
+              height: dims.ITEM_HEIGHT - 10,
               borderRadius: 14,
               background: 'oklch(0.42 0.09 210 / 0.07)',
               boxShadow: [
