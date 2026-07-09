@@ -358,10 +358,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                     }}
                   >
                     {/* Flag badge */}
-                    <div
-                      className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden"
-                      style={{ background: 'oklch(0.88 0.02 80)' }}
-                    >
+                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
                       <FlagImg lang={lang} size={32} />
                     </div>
 
