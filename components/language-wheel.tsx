@@ -350,20 +350,19 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 >
                   {/* Background container for flag and text */}
-                  <div
-                    className="flex-1 flex items-center gap-2 rounded-2xl px-4"
-                    style={{
-                      background: 'oklch(0.88 0.02 80)',
-                      height: dims.ITEM_HEIGHT - 8,
-                    }}
-                  >
+                  <div className="flex-1 flex items-center gap-2">
                     {/* Flag badge */}
                     <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
                       <FlagImg lang={lang} size={32} />
                     </div>
 
-                    {/* Language names */}
-                    <div className="flex-1 text-left min-w-0">
+                    {/* Language names with background */}
+                    <div
+                      className="flex-1 text-left min-w-0 rounded-2xl px-4 py-2"
+                      style={{
+                        background: 'oklch(0.88 0.02 80)',
+                      }}
+                    >
                       <div
                         className="font-body text-sm font-semibold leading-tight truncate"
                         style={{
