@@ -91,6 +91,9 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
     hasMountedRef.current = true
 
     const run = async () => {
+      // انتظار 2 ثانية بعد تحميل الصفحة
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
       // جلب صوت الترحيب
       const buffer = await textToSpeech(WELCOME_TEXT, {
         language: 'en',
