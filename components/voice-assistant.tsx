@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useSpeech } from '@/hooks/use-speech'
 import { detectLanguageFromSpeech } from '@/lib/language-detection'
 import {
@@ -132,24 +133,30 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
   return (
     <div className="fixed inset-0 pointer-events-none flex flex-col items-center justify-between p-4 z-50">
       {/* زر السماعة في الأعلى */}
-      <button
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
         onClick={handleSpeakerClick}
-        className="pointer-events-auto w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110"
+        className="pointer-events-auto w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{
           background: 'oklch(0.6 0.15 210)',
           boxShadow: '0 4px 16px oklch(0.4 0.1 210 / 0.4)',
         }}
         title="Play voice greeting"
       >
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.26 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
         </svg>
-      </button>
+      </motion.button>
 
       {/* زر الميك في الأسفل */}
-      <button
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
         onClick={handleMicClick}
-        className="pointer-events-auto w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110"
+        className="pointer-events-auto w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{
           background: 'oklch(0.5 0.12 25)',
           boxShadow: isMicActive
@@ -159,11 +166,11 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         }}
         title="Press to speak"
       >
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
           <path d="M17 16.91c-1.48 1.46-3.51 2.36-5.77 2.36-2.26 0-4.29-.9-5.77-2.36l-1.1 1.1c1.86 1.86 4.41 3 7.07 3s5.21-1.14 7.07-3l-1.1-1.1zM19 11h-1.7c0 .58-.16 1.12-.41 1.6l1.27 1.27c.5-1.1.84-2.3.84-3.87z" />
         </svg>
-      </button>
+      </motion.button>
 
       <style>{`
         @keyframes pulse {
