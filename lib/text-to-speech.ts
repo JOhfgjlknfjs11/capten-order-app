@@ -1,6 +1,6 @@
 import { type Language } from './dictionary'
 
-const VOICE_ID = 'VxSsN5NGusWQZXue7VE9'
+const VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
 
 interface TextToSpeechOptions {
   language?: Language

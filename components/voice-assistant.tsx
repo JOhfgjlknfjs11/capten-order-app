@@ -44,7 +44,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
       
       const audioBuffer = await textToSpeech(GREETING_MESSAGES.en, {
         language: 'en',
-        voiceId: 'VxSsN5NGusWQZXue7VE9',
+        voiceId: 'hpp4J3VqNfWAUOO0d1Us',
       })
       
       if (audioBuffer) {
@@ -99,7 +99,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         const confirmationText = CONFIRMATION_MESSAGES[detectedLanguage]
         const confirmAudioBuffer = await textToSpeech(confirmationText, {
           language: detectedLanguage,
-          voiceId: 'VxSsN5NGusWQZXue7VE9',
+          voiceId: 'hpp4J3VqNfWAUOO0d1Us',
         })
         if (confirmAudioBuffer) {
           await playAudio(confirmAudioBuffer)
