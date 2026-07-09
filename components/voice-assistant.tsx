@@ -91,8 +91,6 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
     hasMountedRef.current = true
 
     const run = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
       const buffer = await textToSpeech(WELCOME_TEXT, {
         language: 'en',
         voiceId:  VOICE_ID,
