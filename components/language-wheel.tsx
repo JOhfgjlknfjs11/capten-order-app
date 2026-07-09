@@ -11,6 +11,28 @@ interface LanguageWheelProps {
   onAudioStop?: () => void
 }
 
+// أحجام متجاوبة حسب حجم الشاشة
+// على الهواتف الصغيرة: ITEM_HEIGHT=56، على الأجهزة الكبيرة: ITEM_HEIGHT=72
+const getResponsiveDimensions = () => {
+  if (typeof window === 'undefined') {
+    return { ITEM_HEIGHT: 72, DIAMETER: 340 }
+  }
+  const width = window.innerWidth
+  if (width < 480) {
+    // الهواتف الصغيرة جداً
+    return { ITEM_HEIGHT: 48, DIAMETER: 280 }
+  } else if (width < 768) {
+    // الهواتف والأجهزة اللوحية الصغيرة
+    return { ITEM_HEIGHT: 56, DIAMETER: 300 }
+  } else if (width < 1024) {
+    // الأجهزة اللوحية
+    return { ITEM_HEIGHT: 64, DIAMETER: 320 }
+  } else {
+    // الشاشات الكبيرة
+    return { ITEM_HEIGHT: 72, DIAMETER: 340 }
+  }
+}
+
 const ITEM_HEIGHT = 72
 const VISIBLE_ITEMS = 5
 // Circle diameter — must be wide enough for the content
@@ -71,11 +93,21 @@ function playTick() {
 export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: LanguageWheelProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isSelecting, setIsSelecting] = useState(false)
+  const [dims, setDims] = useState(() => getResponsiveDimensions())
   const y = useMotionValue(0)
   const isDragging = useRef(false)
   const lastSnappedIndex = useRef(0)
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isAutoScrolling = useRef(false)
+
+  // تحديث الأبعاد عند تغيير حجم الشاشة
+  useEffect(() => {
+    const handleResize = () => {
+      setDims(getResponsiveDimensions())
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const clampIndex = (idx: number) =>
     Math.max(0, Math.min(LANGUAGES.length - 1, idx))
@@ -88,13 +120,13 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
       }
       lastSnappedIndex.current = clamped
       setSelectedIndex(clamped)
-      animate(y, -clamped * ITEM_HEIGHT, {
+      animate(y, -clamped * dims.ITEM_HEIGHT, {
         type: 'spring',
         stiffness: 300,
         damping: 35,
       })
     },
-    [y]
+    [y, dims]
   )
 
   // التمرير التلقائي عند التحكم الصوتي - خطوة خطوة بصوت تك تك
@@ -173,15 +205,14 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
   )
 
   const handleDragEnd = useCallback(() => {
-    isDragging.current = false
-    const rawIndex = -y.get() / ITEM_HEIGHT
+    if (isAutoScrolling.current) return
+    const rawIndex = -y.get() / dims.ITEM_HEIGHT
     const snapped = Math.round(rawIndex)
     snapToIndex(snapped)
-  }, [y, snapToIndex])
+  }, [snapToIndex, y, dims])
 
-  // Tick on continuous drag whenever index would change
   const handleDrag = useCallback(() => {
-    const rawIndex = -y.get() / ITEM_HEIGHT
+    const rawIndex = -y.get() / dims.ITEM_HEIGHT
     const snapped = clampIndex(Math.round(rawIndex))
     if (snapped !== lastSnappedIndex.current) {
       playTick()
@@ -287,7 +318,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
             style={{ y }}
             drag="y"
             dragConstraints={{
-              top: -(LANGUAGES.length - 1) * ITEM_HEIGHT,
+              top: -(LANGUAGES.length - 1) * dims.ITEM_HEIGHT,
               bottom: 0,
             }}
             dragElastic={0.08}
@@ -297,7 +328,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
             className="cursor-grab active:cursor-grabbing"
           >
             {/* Top spacer to center first item — DIAMETER - 12 (inset:6 each side) */}
-            <div style={{ height: (DIAMETER - 12 - ITEM_HEIGHT) / 2 }} />
+            <div style={{ height: (dims.DIAMETER - 12 - dims.ITEM_HEIGHT) / 2 }} />
 
             {LANGUAGES.map((lang, idx) => {
               const dict = dictionary[lang]
@@ -310,7 +341,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   onClick={() => !isDragging.current && handleSelect(idx)}
                   className="w-full flex items-center gap-3 focus:outline-none"
                   style={{
-                    height: ITEM_HEIGHT,
+                    height: dims.ITEM_HEIGHT,
                     paddingLeft: 40,
                     paddingRight: 36,
                   }}
@@ -321,28 +352,12 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 >
                   {/* Flag badge */}
-                  <div
-                    className="flex-shrink-0 flex items-center justify-center overflow-hidden"
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      background: isSelected
-                        ? 'oklch(0.42 0.09 210 / 0.1)'
-                        : 'oklch(0.96 0.008 82)',
-                      boxShadow: isSelected
-                        ? [
-                            'inset 2px 2px 6px oklch(0.84 0.012 80 / 0.4)',
-                            'inset -2px -2px 5px oklch(1 0.003 90 / 0.7)',
-                          ].join(', ')
-                        : [
-                            '3px 3px 7px oklch(0.84 0.012 80 / 0.5)',
-                            '-2px -2px 5px oklch(1 0.003 90 / 0.8)',
-                          ].join(', '),
-                      border: isSelected
-                        ? '1.5px solid oklch(0.42 0.09 210 / 0.25)'
-                        : '1px solid oklch(0.9 0.01 82 / 0.5)',
-                    }}
+      <div
+        className="mx-auto flex h-screen items-center justify-center overflow-hidden bg-background"
+        style={{
+          width: dims.DIAMETER,
+          height: dims.DIAMETER,
+        }}
                   >
                     <FlagImg lang={lang} size={28} />
                   </div>
@@ -393,7 +408,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
             })}
 
             {/* Bottom spacer */}
-            <div style={{ height: (DIAMETER - 12 - ITEM_HEIGHT) / 2 }} />
+            <div style={{ height: (dims.DIAMETER - 12 - dims.ITEM_HEIGHT) / 2 }} />
           </motion.div>
         </div>
       </motion.div>
