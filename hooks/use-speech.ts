@@ -95,34 +95,17 @@ export function useSpeech() {
     onResultRef.current = options.onResult
     recognition.lang = options.language || 'en-US'
 
-    // طلب إذن المايك أولاً إن أمكن
-    const startRec = () => {
-      try {
-        recognition.start()
+    // SpeechRecognition نفسها توكل طلب أذن المايك عند start()
+    // لا نطلب getUserMedia - يسبب تضارباً
+    try {
+      recognition.start()
 
-        const maxDuration = options.maxDuration || 8000
-        timeoutRef.current = setTimeout(() => {
-          try { recognition.stop() } catch {}
-        }, maxDuration)
-      } catch (err) {
-        setError(String(err))
-      }
-    }
-
-    // في الـ browsers الحديثة، يمكن طلب الإذن قبل start
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then(() => {
-          startRec()
-        })
-        .catch((err) => {
-          setError('Microphone permission denied: ' + err.message)
-          // لكن نحاول مباشرة أيضاً
-          startRec()
-        })
-    } else {
-      startRec()
+      const maxDuration = options.maxDuration || 8000
+      timeoutRef.current = setTimeout(() => {
+        try { recognition.stop() } catch {}
+      }, maxDuration)
+    } catch (err) {
+      setError(String(err))
     }
   }, [])
 
