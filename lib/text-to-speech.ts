@@ -20,6 +20,8 @@ export async function textToSpeech(
     const voiceId = options.voiceId || VOICE_ID
     const language = options.language || 'en'
 
+    console.log('[v0] TTS Request:', { text: text.substring(0, 30), voiceId: voiceId.substring(0, 8), language })
+
     const response = await fetch('/api/tts', {
       method: 'POST',
       headers: {
@@ -34,12 +36,17 @@ export async function textToSpeech(
       }),
     })
 
+    console.log('[v0] TTS Response status:', response.status)
+
     if (!response.ok) {
-      console.error('[v0] TTS error:', response.statusText)
+      const errorText = await response.text()
+      console.error('[v0] TTS error:', response.statusText, errorText)
       return null
     }
 
-    return await response.arrayBuffer()
+    const buffer = await response.arrayBuffer()
+    console.log('[v0] TTS Success:', buffer.byteLength, 'bytes')
+    return buffer
   } catch (error) {
     console.error('[v0] TTS error:', error)
     return null
@@ -47,28 +54,65 @@ export async function textToSpeech(
 }
 
 /**
- * تشغيل الصوت من ArrayBuffer
+ * تشغيل الصوت من ArrayBuffer (MP3)
  */
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const audioSource = await audioContext.decodeAudioData(audioBuffer.slice(0))
-    const source = audioContext.createBufferSource()
-    source.buffer = audioSource
-    source.connect(audioContext.destination)
-    source.start(0)
+  return new Promise((resolve) => {
+    try {
+      console.log('[v0] بدء تشغيل الصوت، الحجم:', audioBuffer.byteLength)
+      
+      // أنشئ Blob من ArrayBuffer
+      const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
+      const url = URL.createObjectURL(blob)
 
-    // انتظر حتى ينتهي الصوت
-    return new Promise((resolve) => {
-      source.onended = () => {
-        resolve()
+      // استخدم عنصر audio لتشغيل الصوت
+      const audio = new Audio()
+      audio.src = url
+      audio.type = 'audio/mpeg'
+
+      let resolved = false
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true
+          URL.revokeObjectURL(url)
+          resolve()
+        }
       }
-      // timeout safety في حالة لم ينتهي الصوت
-      setTimeout(resolve, 30000)
-    })
-  } catch (error) {
-    console.error('[v0] Audio playback error:', error)
-  }
+
+      audio.onended = () => {
+        console.log('[v0] انتهى تشغيل الصوت')
+        cleanup()
+      }
+
+      audio.onerror = (error) => {
+        console.error('[v0] خطأ في تشغيل الصوت:', error)
+        cleanup()
+      }
+
+      // timeout safety - 35 ثانية
+      const timeout = setTimeout(() => {
+        console.log('[v0] انتهت مهلة الصوت')
+        cleanup()
+      }, 35000)
+
+      // محاولة تشغيل الصوت
+      const playPromise = audio.play()
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise
+          .then(() => {
+            console.log('[v0] بدأ تشغيل الصوت بنجاح')
+          })
+          .catch((error) => {
+            console.error('[v0] خطأ في تشغيل الصوت:', error)
+            clearTimeout(timeout)
+            cleanup()
+          })
+      }
+    } catch (error) {
+      console.error('[v0] خطأ في إعداد الصوت:', error)
+      resolve()
+    }
+  })
 }
 
 /**

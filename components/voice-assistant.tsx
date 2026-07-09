@@ -25,31 +25,51 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [currentPhase, setCurrentPhase] = useState<'greeting' | 'listening' | 'confirming'>('greeting')
+  const [debugMessage, setDebugMessage] = useState('جاري التهيئة...')
   const { isListening, transcript, startListening, stopListening } = useSpeech()
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const hasPlayedGreetingRef = useRef(false)
 
   // تشغيل الترحيب عند التحميل
   useEffect(() => {
-    if (!hasPlayedGreetingRef.current) {
-      hasPlayedGreetingRef.current = true
-      playGreeting()
+    const playOnMount = async () => {
+      if (!hasPlayedGreetingRef.current) {
+        hasPlayedGreetingRef.current = true
+        console.log('[v0] بدء تشغيل رسالة الترحيب الصوتية')
+        setDebugMessage('تشغيل الرسالة الصوتية...')
+        await playGreeting()
+      }
     }
-  }, [])
+    playOnMount()
+  }, []) // لا نضع startListening هنا لتجنب الحلقات
 
   const playGreeting = useCallback(async () => {
     try {
+      console.log('[v0] Starting greeting...')
+      setDebugMessage('Audio req...')
       setIsSpeaking(true)
+      
       const audioBuffer = await textToSpeech(GREETING_MESSAGES.en, {
         language: 'en',
+        voiceId: 'VxSsN5NGusWQZXue7VE9',
       })
+      
       if (audioBuffer) {
+        console.log('[v0] Audio received:', audioBuffer.byteLength)
+        setDebugMessage('Playing voice greeting...')
         await playAudio(audioBuffer)
+        setDebugMessage('Listening for language...')
+      } else {
+        console.error('[v0] No audio buffer - check ElevenLabs API key and credits')
+        setDebugMessage('Error: Check ElevenLabs API key/credits')
       }
       setCurrentPhase('listening')
       startListening({ language: 'en-US' })
     } catch (error) {
-      console.error('[v0] خطأ في تشغيل الترحيب:', error)
+      console.error('[v0] Greeting error:', error)
+      setDebugMessage(`Error: ${String(error).substring(0, 20)}`)
+      setCurrentPhase('listening')
+      startListening({ language: 'en-US' })
     } finally {
       setIsSpeaking(false)
     }
@@ -93,11 +113,13 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         // تشغيل رسالة التأكيد
         await new Promise((resolve) => setTimeout(resolve, 500))
         const confirmationText = CONFIRMATION_MESSAGES[detectedLanguage]
-        const audioBuffer = await textToSpeech(confirmationText, {
+        const confirmAudioBuffer = await textToSpeech(confirmationText, {
           language: detectedLanguage,
+          voiceId: 'VxSsN5NGusWQZXue7VE9',
         })
-        if (audioBuffer) {
-          await playAudio(audioBuffer)
+        if (confirmAudioBuffer) {
+          console.log('[v0] تشغيل رسالة التأكيد بـ', detectedLanguage)
+          await playAudio(confirmAudioBuffer)
         }
 
         // أبلغ عن اللغة المكتشفة
@@ -118,7 +140,18 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
   }, [startListening])
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+    <div className="fixed top-4 right-4 z-50 flex flex-col items-end gap-3">
+      {/* رسالة status */}
+      <div className={`px-3 py-2 rounded-lg text-xs max-w-xs font-medium ${
+        debugMessage.includes('Error') 
+          ? 'bg-red-500/30 text-red-700'
+          : 'bg-yellow-500/30 text-yellow-700'
+      }`}>
+        {debugMessage}
+      </div>
+
+      {/* مؤشرات الحالة */}
+      <div className="flex items-center gap-3">
       {/* مؤشر الحالة */}
       {isListening && (
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 backdrop-blur-sm">
@@ -155,6 +188,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
           <Mic className="w-5 h-5 text-white" />
         </button>
       )}
+      </div>
     </div>
   )
 }
