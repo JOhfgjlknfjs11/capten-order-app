@@ -352,12 +352,9 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 >
                   {/* Flag badge */}
-      <div
-        className="mx-auto flex h-screen items-center justify-center overflow-hidden bg-background"
-        style={{
-          width: dims.DIAMETER,
-          height: dims.DIAMETER,
-        }}
+                  <div
+                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
+                    style={{ background: 'oklch(0.88 0.02 80)' }}
                   >
                     <FlagImg lang={lang} size={28} />
                   </div>
