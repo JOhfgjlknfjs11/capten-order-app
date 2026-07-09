@@ -1,12 +1,17 @@
 import { ElevenLabsClient } from 'elevenlabs'
 
-if (!process.env.ELEVENLABS_API_KEY) {
-  throw new Error('ELEVENLABS_API_KEY environment variable is not set')
-}
+// لا نرمي هنا - نتحقق داخل الدالة فقط لتجنب crash وقت الـ import
+let client: ElevenLabsClient | null = null
 
-const client = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-})
+function getClient(): ElevenLabsClient {
+  if (!process.env.ELEVENLABS_API_KEY) {
+    throw new Error('ELEVENLABS_API_KEY is not set')
+  }
+  if (!client) {
+    client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+  }
+  return client
+}
 
 export interface TextToSpeechOptions {
   text: string
@@ -23,35 +28,18 @@ export async function textToSpeech({
   voiceId,
   language,
 }: TextToSpeechOptions): Promise<Buffer> {
-  try {
-    const audio = await client.generate({
-      voice: voiceId,
-      text,
-      model_id: 'eleven_multilingual_v2', // Supports multiple languages
-      language_code: language, // ISO 639-1 code (e.g., 'en', 'ar', 'fr')
-    })
+  const c = getClient()
 
-    // Convert async generator to buffer
-    const chunks: Buffer[] = []
-    for await (const chunk of audio) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-    }
-    return Buffer.concat(chunks)
-  } catch (error) {
-    console.error('[v0] ElevenLabs TTS error:', error)
-    throw new Error(`Failed to generate speech: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  }
-}
+  const audio = await c.generate({
+    voice: voiceId,
+    text,
+    model_id: 'eleven_multilingual_v2',
+    language_code: language,
+  })
 
-/**
- * Get list of available voices from ElevenLabs
- */
-export async function getAvailableVoices() {
-  try {
-    const voices = await client.voices.getAll()
-    return voices
-  } catch (error) {
-    console.error('[v0] Failed to fetch voices:', error)
-    throw new Error('Failed to fetch available voices')
+  const chunks: Buffer[] = []
+  for await (const chunk of audio) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
   }
+  return Buffer.concat(chunks)
 }
