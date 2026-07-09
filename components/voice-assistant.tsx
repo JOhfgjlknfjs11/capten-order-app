@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSpeech } from '@/hooks/use-speech'
 import { detectLanguageFromSpeech } from '@/lib/language-detection'
 import {
@@ -23,6 +23,7 @@ interface VoiceAssistantProps {
 
 export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssistantProps) {
   const { startListening, stopListening } = useSpeech()
+  const [isMicActive, setIsMicActive] = useState(false)
 
   const hasMountedRef      = useRef(false)   // منع التكرار
   const isProcessingRef    = useRef(false)   // منع المعالجة المتوازية
@@ -35,6 +36,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
 
   // --- المرحلة 2: فتح المايك بعد انتهاء الترحيب ---
   const openMicAndListen = useCallback(() => {
+    setIsMicActive(true)
     startListening({
       language:    'en-US',
       maxDuration: 8000,
@@ -44,6 +46,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         if (!transcript.trim()) return
 
         isProcessingRef.current = true
+        setIsMicActive(false)
         stopListening()
 
         try {
@@ -149,7 +152,10 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         className="pointer-events-auto w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{
           background: 'oklch(0.5 0.12 25)',
-          boxShadow: '0 4px 16px oklch(0.4 0.1 25 / 0.4)',
+          boxShadow: isMicActive
+            ? '0 0 0 8px oklch(0.5 0.12 25 / 0.3), 0 4px 16px oklch(0.4 0.1 25 / 0.4)'
+            : '0 4px 16px oklch(0.4 0.1 25 / 0.4)',
+          animation: isMicActive ? 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
         }}
         title="Press to speak"
       >
@@ -158,6 +164,17 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
           <path d="M17 16.91c-1.48 1.46-3.51 2.36-5.77 2.36-2.26 0-4.29-.9-5.77-2.36l-1.1 1.1c1.86 1.86 4.41 3 7.07 3s5.21-1.14 7.07-3l-1.1-1.1zM19 11h-1.7c0 .58-.16 1.12-.41 1.6l1.27 1.27c.5-1.1.84-2.3.84-3.87z" />
         </svg>
       </button>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            box-shadow: 0 0 0 8px oklch(0.5 0.12 25 / 0.4), 0 4px 16px oklch(0.4 0.1 25 / 0.4);
+          }
+          50% {
+            box-shadow: 0 0 0 12px oklch(0.5 0.12 25 / 0.1), 0 4px 16px oklch(0.4 0.1 25 / 0.4);
+          }
+        }
+      `}</style>
     </div>
   )
 }
