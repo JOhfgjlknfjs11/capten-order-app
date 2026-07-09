@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { type Language } from '@/lib/dictionary'
 import { type MenuItem } from '@/lib/menu-data'
@@ -58,22 +58,28 @@ export default function CaptenOrderApp() {
   }, [])
 
   const handleVoiceLanguageDetected = useCallback(
-    (language: Language, index: number) => {
-      setLanguage(language)
-      // تأخير طفيف للسماح برؤية التأكيد الصوتي
-      setTimeout(() => {
-        setStep('welcome')
-      }, 1500)
+    (lang: Language, index: number) => {
+      setLanguage(lang)
+      // الانتقال لشاشة الترحيب بعد التأكيد الصوتي
+      setTimeout(() => setStep('welcome'), 1800)
     },
     []
   )
 
+  // ref يحمل resolve الخاص بآخر autoScroll promise
+  const scrollResolveRef = useRef<(() => void) | null>(null)
+
   const handleAutoScroll = useCallback(
-    async (targetIndex: number): Promise<void> => {
+    (targetIndex: number): Promise<void> => {
       return new Promise((resolve) => {
+        scrollResolveRef.current = resolve
         setVoiceSelectedLanguageIndex(targetIndex)
-        // انتظر اكتمال التمرير
-        setTimeout(resolve, 1500)
+        // نعطي الـ wheel وقتاً كافياً للتمرير (distance * 120ms + buffer)
+        // الحد الأقصى 12 لغة × 120ms = ~1.5 ثانية
+        setTimeout(() => {
+          resolve()
+          scrollResolveRef.current = null
+        }, 1600)
       })
     },
     []

@@ -2,27 +2,6 @@
 
 import { useCallback, useState, useRef, useEffect } from 'react'
 
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList
-  isFinal: boolean
-}
-
-interface SpeechRecognitionResultList {
-  [index: number]: SpeechRecognitionResult
-  length: number
-}
-
-interface SpeechRecognitionResult {
-  [index: number]: SpeechRecognitionAlternative
-  isFinal: boolean
-  length: number
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string
-  confidence: number
-}
-
 declare global {
   interface Window {
     SpeechRecognition: any
@@ -32,9 +11,9 @@ declare global {
 
 export interface UseSpeechOptions {
   language?: string
+  maxDuration?: number
   onResult?: (transcript: string, isFinal: boolean) => void
   onError?: (error: string) => void
-  maxDuration?: number
 }
 
 export function useSpeech() {
@@ -43,102 +22,126 @@ export function useSpeech() {
   const [error, setError] = useState<string | null>(null)
   const recognitionRef = useRef<any>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const onResultRef = useRef<((t: string, f: boolean) => void) | undefined>(undefined)
 
+  // تهيئة SpeechRecognition مرة واحدة
   useEffect(() => {
-    const SpeechRecognitionAPI =
-      typeof window !== 'undefined' &&
-      (window.SpeechRecognition || window.webkitSpeechRecognition)
+    if (typeof window === 'undefined') return
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) return
 
-    if (SpeechRecognitionAPI && !recognitionRef.current) {
-      recognitionRef.current = new SpeechRecognitionAPI()
-      recognitionRef.current.continuous = false
-      recognitionRef.current.interimResults = true
+    const recognition = new SpeechRecognitionAPI()
+    recognition.continuous = false
+    recognition.interimResults = true
+
+    recognition.onstart = () => {
+      setIsListening(true)
+    }
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = ''
+      let interimTranscript = ''
+
+      for (let i = 0; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          finalTranscript += t + ' '
+        } else {
+          interimTranscript += t
+        }
+      }
+
+      const current = (finalTranscript || interimTranscript).trim()
+      setTranscript(current)
+
+      const isFinal = event.results[event.results.length - 1].isFinal
+      if (onResultRef.current) {
+        onResultRef.current(current, isFinal)
+      }
+    }
+
+    recognition.onerror = (event: any) => {
+      // تجاهل no-speech - طبيعي عندما يكون هناك صمت
+      if (event.error === 'no-speech') return
+      setError(event.error)
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+    }
+
+    recognitionRef.current = recognition
+  }, [])
+
+  const startListening = useCallback((options: UseSpeechOptions = {}) => {
+    const recognition = recognitionRef.current
+    if (!recognition) {
+      setError('Speech Recognition not available')
+      return
+    }
+
+    // إيقاف أي جلسة سابقة بهدوء
+    try { recognition.abort() } catch {}
+
+    setTranscript('')
+    setError(null)
+    onResultRef.current = options.onResult
+
+    recognition.lang = options.language || 'en-US'
+
+    // طلب إذن المايك أولاً ثم البدء
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            // تضييق نطاق الميكروفون - يلتقط الصوت القريب فقط (~25 سم)
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false,
+            // تقليل الحساسية لأبعاد كبيرة
+            advanced: [
+              { googNoiseSuppression: true } as any,
+              { googHighpassFilter: true } as any,
+            ],
+          },
+        })
+        .then(() => {
+          try {
+            recognition.start()
+          } catch {}
+
+          // توقف تلقائي بعد المدة المحددة
+          const maxDuration = options.maxDuration || 8000
+          timeoutRef.current = setTimeout(() => {
+            try { recognition.stop() } catch {}
+          }, maxDuration)
+        })
+        .catch(() => {
+          // إذا رُفض الإذن، حاول مباشرة
+          try {
+            recognition.start()
+          } catch {}
+        })
+    } else {
+      try {
+        recognition.start()
+      } catch {}
     }
   }, [])
 
-  const startListening = useCallback(
-    (options: UseSpeechOptions = {}) => {
-      if (!recognitionRef.current) {
-        setError('Speech Recognition غير متاح في متصفحك')
-        return
-      }
-
-      setTranscript('')
-      setError(null)
-      setIsListening(true)
-
-      recognitionRef.current.language = options.language || 'en-US'
-
-      recognitionRef.current.onstart = () => {
-        setIsListening(true)
-      }
-
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        let interimTranscript = ''
-        let finalTranscript = ''
-
-        for (let i = event.results.length - 1; i >= 0; i--) {
-          const transcript = event.results[i][0].transcript
-          const confidence = event.results[i][0].confidence
-
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' '
-          } else {
-            interimTranscript += transcript
-          }
-        }
-
-        const currentTranscript = finalTranscript || interimTranscript
-        setTranscript(currentTranscript)
-
-        if (options.onResult) {
-          options.onResult(currentTranscript, event.results[event.results.length - 1].isFinal)
-        }
-      }
-
-      recognitionRef.current.onerror = (event: any) => {
-        const errorMessage = `خطأ في التعرف الصوتي: ${event.error}`
-        setError(errorMessage)
-        if (options.onError) {
-          options.onError(event.error)
-        }
-      }
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false)
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-        }
-      }
-
-      recognitionRef.current.start()
-
-      // توقف تلقائي بعد المدة المحددة
-      const maxDuration = options.maxDuration || 8000
-      timeoutRef.current = setTimeout(() => {
-        if (recognitionRef.current) {
-          recognitionRef.current.stop()
-        }
-      }, maxDuration)
-    },
-    []
-  )
-
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
+    try { recognitionRef.current?.stop() } catch {}
     setIsListening(false)
   }, [])
 
-  return {
-    isListening,
-    transcript,
-    error,
-    startListening,
-    stopListening,
-  }
+  return { isListening, transcript, error, startListening, stopListening }
 }

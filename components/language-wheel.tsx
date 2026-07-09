@@ -96,56 +96,64 @@ export function LanguageWheel({ onSelect, voiceControlIndex }: LanguageWheelProp
     [y]
   )
 
-  // التمرير التلقائي عند التحكم الصوتي
+  // التمرير التلقائي عند التحكم الصوتي - خطوة خطوة بصوت تك تك
   const autoScrollToIndex = useCallback(
-    async (targetIndex: number): Promise<void> => {
-      if (isAutoScrolling.current) return
-      isAutoScrolling.current = true
+    (targetIndex: number): Promise<void> => {
+      return new Promise((resolve) => {
+        if (isAutoScrolling.current) {
+          resolve()
+          return
+        }
+        isAutoScrolling.current = true
 
-      try {
-        const current = selectedIndex
-        const direction = targetIndex > current ? 1 : -1
-        const distance = Math.abs(targetIndex - current)
-        const stepDuration = Math.min(1500 / distance, 800) // سرعة تمرير سلسة ولكن سريعة
+        if (scrollIntervalRef.current) {
+          clearInterval(scrollIntervalRef.current)
+        }
 
-        return new Promise((resolve) => {
-          let currentStep = 0
+        // نقرأ الموضع الحالي من lastSnappedIndex لا من state
+        const startIndex = lastSnappedIndex.current
+        const distance   = Math.abs(targetIndex - startIndex)
 
-          if (scrollIntervalRef.current) {
-            clearInterval(scrollIntervalRef.current)
+        if (distance === 0) {
+          isAutoScrolling.current = false
+          resolve()
+          return
+        }
+
+        const direction   = targetIndex > startIndex ? 1 : -1
+        // كل خطوة تأخذ 120ms - سريع وواضح
+        const STEP_MS = 120
+        let step = 0
+
+        scrollIntervalRef.current = setInterval(() => {
+          step++
+          const next = startIndex + direction * step
+
+          if (
+            (direction > 0 && next >= targetIndex) ||
+            (direction < 0 && next <= targetIndex)
+          ) {
+            clearInterval(scrollIntervalRef.current!)
+            scrollIntervalRef.current = null
+            snapToIndex(targetIndex, true)
+            isAutoScrolling.current = false
+            resolve()
+          } else {
+            snapToIndex(next, true)
           }
-
-          scrollIntervalRef.current = setInterval(() => {
-            currentStep++
-            const nextIndex = current + direction * currentStep
-
-            if (
-              (direction > 0 && nextIndex >= targetIndex) ||
-              (direction < 0 && nextIndex <= targetIndex)
-            ) {
-              clearInterval(scrollIntervalRef.current!)
-              snapToIndex(targetIndex, true)
-              isAutoScrolling.current = false
-              resolve()
-            } else {
-              snapToIndex(nextIndex, true)
-            }
-          }, stepDuration / distance)
-        })
-      } catch (error) {
-        console.error('[v0] خطأ في التمرير التلقائي:', error)
-        isAutoScrolling.current = false
-      }
+        }, STEP_MS)
+      })
     },
-    [selectedIndex, snapToIndex]
+    [snapToIndex]
   )
 
-  // رد على تغيير voiceControlIndex
+  // رد على تغيير voiceControlIndex من الـ parent
   useEffect(() => {
-    if (voiceControlIndex !== undefined && voiceControlIndex !== selectedIndex) {
+    if (voiceControlIndex !== undefined) {
       autoScrollToIndex(voiceControlIndex)
     }
-  }, [voiceControlIndex, selectedIndex, autoScrollToIndex])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceControlIndex])
 
   const handleSelect = useCallback(
     (idx: number) => {
