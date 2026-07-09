@@ -85,52 +85,22 @@ export function useSpeech() {
       return
     }
 
-    // إيقاف أي جلسة سابقة بهدوء
     try { recognition.abort() } catch {}
 
     setTranscript('')
     setError(null)
     onResultRef.current = options.onResult
-
     recognition.lang = options.language || 'en-US'
 
-    // طلب إذن المايك أولاً ثم البدء
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-      navigator.mediaDevices
-        .getUserMedia({
-          audio: {
-            // تضييق نطاق الميكروفون - يلتقط الصوت القريب فقط (~25 سم)
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: false,
-            // تقليل الحساسية لأبعاد كبيرة
-            advanced: [
-              { googNoiseSuppression: true } as any,
-              { googHighpassFilter: true } as any,
-            ],
-          },
-        })
-        .then(() => {
-          try {
-            recognition.start()
-          } catch {}
+    try {
+      recognition.start()
 
-          // توقف تلقائي بعد المدة المحددة
-          const maxDuration = options.maxDuration || 8000
-          timeoutRef.current = setTimeout(() => {
-            try { recognition.stop() } catch {}
-          }, maxDuration)
-        })
-        .catch(() => {
-          // إذا رُفض الإذن، حاول مباشرة
-          try {
-            recognition.start()
-          } catch {}
-        })
-    } else {
-      try {
-        recognition.start()
-      } catch {}
+      const maxDuration = options.maxDuration || 8000
+      timeoutRef.current = setTimeout(() => {
+        try { recognition.stop() } catch {}
+      }, maxDuration)
+    } catch (err) {
+      setError(String(err))
     }
   }, [])
 
