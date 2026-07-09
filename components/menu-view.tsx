@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, ChevronDown, Check, Globe } from 'lucide-react'
+import { ShoppingCart, ChevronDown, Check, Globe, Settings } from 'lucide-react'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 import { MENU_ITEMS, getItemName, getItemDescription, type Category, type MenuItem } from '@/lib/menu-data'
 
@@ -199,7 +200,20 @@ export function MenuView({
         </div>
 
         {/* Right controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Settings */}
+          <Link
+            href="/settings"
+            className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+            style={{
+              background: 'oklch(0.99 0.004 85)',
+              boxShadow: '4px 4px 10px oklch(0.84 0.012 80), -2px -2px 7px oklch(1 0.003 90)',
+            }}
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" style={{ color: 'oklch(0.32 0.02 55)' }} />
+          </Link>
+
           {/* Language switcher */}
           <div className="relative">
             <button
