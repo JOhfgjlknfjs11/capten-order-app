@@ -130,7 +130,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
   }, [openMicAndListen])
 
   return (
-    <div className="fixed inset-0 pointer-events-none flex flex-col items-center justify-between p-4">
+    <div className="fixed inset-0 pointer-events-none flex flex-col items-center justify-between p-4 z-50">
       {/* زر السماعة في الأعلى */}
       <button
         onClick={handleSpeakerClick}
