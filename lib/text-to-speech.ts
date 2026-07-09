@@ -49,71 +49,42 @@ export async function textToSpeech(
  * تشغيل الصوت من ArrayBuffer (MP3) باستخدام Web Audio API
  */
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
-  return new Promise((resolve) => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      
-      audioContext.decodeAudioData(
-        audioBuffer.slice(0),
-        (decodedData) => {
-          const source = audioContext.createBufferSource()
-          source.buffer = decodedData
-          source.connect(audioContext.destination)
-          
-          source.onended = () => {
-            resolve()
-          }
-          
-          // 35 second timeout safety
-          const timeout = setTimeout(() => {
-            resolve()
-          }, 35000)
-          
-          source.start(0)
-        },
-        (error) => {
-          // If decode fails, fallback to Audio element
-          fallbackAudioPlayback(audioBuffer, resolve)
-        }
-      )
-    } catch (error) {
-      fallbackAudioPlayback(audioBuffer, resolve)
-    }
-  })
-}
-
-/**
- * Fallback to Audio element if Web Audio API fails
- */
-function fallbackAudioPlayback(audioBuffer: ArrayBuffer, resolve: () => void): void {
   try {
-    const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
-    const url = URL.createObjectURL(blob)
-    const audio = new Audio()
-    audio.src = url
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    const ctx = new AudioCtx()
 
-    let isDone = false
-    const cleanup = () => {
-      if (!isDone) {
-        isDone = true
-        URL.revokeObjectURL(url)
+    // resume() إلزامي - بدونه يبقى suspended ولا يخرج صوت
+    if (ctx.state === 'suspended') {
+      await ctx.resume()
+    }
+
+    const decoded = await ctx.decodeAudioData(audioBuffer.slice(0))
+
+    return new Promise((resolve) => {
+      const source = ctx.createBufferSource()
+      source.buffer = decoded
+      source.connect(ctx.destination)
+      source.onended = () => {
+        ctx.close()
         resolve()
       }
-    }
-
-    audio.onended = cleanup
-    audio.onerror = cleanup
-    
-    const timeout = setTimeout(cleanup, 35000)
-    
-    audio.play().catch((err) => {
-      clearTimeout(timeout)
-      cleanup()
+      setTimeout(() => resolve(), (decoded.duration + 2) * 1000)
+      source.start(0)
     })
-  } catch (error) {
-    resolve()
+  } catch {
+    // fallback: HTML Audio element
+    return new Promise((resolve) => {
+      const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
+      const url  = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.onended = () => { URL.revokeObjectURL(url); resolve() }
+      audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
+      setTimeout(resolve, 35000)
+      audio.play().catch(() => resolve())
+    })
   }
 }
+
 
 /**
  * تشغيل النص الصوتي مباشرة

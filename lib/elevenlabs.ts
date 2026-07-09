@@ -1,14 +1,15 @@
 import { ElevenLabsClient } from 'elevenlabs'
 
-// لا نرمي هنا - نتحقق داخل الدالة فقط لتجنب crash وقت الـ import
+const ELEVENLABS_API_KEY = 'sk_a1c3af2b173d4dca1500a480f425e4906cde3cd5b73a2ee9'
+export const DEFAULT_VOICE_ID   = 'hpp4J3VqNfWAUOO0d1Us'
+
 let client: ElevenLabsClient | null = null
 
 function getClient(): ElevenLabsClient {
-  if (!process.env.ELEVENLABS_API_KEY) {
-    throw new Error('ELEVENLABS_API_KEY is not set')
-  }
   if (!client) {
-    client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+    client = new ElevenLabsClient({
+      apiKey: process.env.ELEVENLABS_API_KEY || ELEVENLABS_API_KEY,
+    })
   }
   return client
 }

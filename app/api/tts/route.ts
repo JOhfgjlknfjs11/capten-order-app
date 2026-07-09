@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { textToSpeech } from '@/lib/elevenlabs'
+import { textToSpeech, DEFAULT_VOICE_ID } from '@/lib/elevenlabs'
 
 export const runtime = 'nodejs'
 
@@ -7,11 +7,15 @@ export async function POST(request: NextRequest) {
   try {
     const { text, voiceId, language } = await request.json()
 
-    if (!text?.trim() || !voiceId?.trim()) {
-      return NextResponse.json({ error: 'text and voiceId are required' }, { status: 400 })
+    if (!text?.trim()) {
+      return NextResponse.json({ error: 'text is required' }, { status: 400 })
     }
 
-    const audioBuffer = await textToSpeech({ text, voiceId, language: language || 'en' })
+    const audioBuffer = await textToSpeech({
+      text,
+      voiceId: voiceId?.trim() || DEFAULT_VOICE_ID,
+      language: language || 'en',
+    })
 
     return new NextResponse(audioBuffer, {
       status: 200,
