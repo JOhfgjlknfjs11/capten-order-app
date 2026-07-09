@@ -339,11 +339,9 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                 <motion.button
                   key={lang}
                   onClick={() => !isDragging.current && handleSelect(idx)}
-                  className="w-full flex items-center gap-2 focus:outline-none"
+                  className="w-full flex items-center gap-2 focus:outline-none pr-0"
                   style={{
                     height: dims.ITEM_HEIGHT,
-                    paddingLeft: 16,
-                    paddingRight: 16,
                   }}
                   animate={{
                     opacity: distance === 0 ? 1 : distance === 1 ? 0.65 : 0.28,
@@ -351,35 +349,44 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   }}
                   transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 >
-                  {/* Flag badge */}
+                  {/* Background container for flag and text */}
                   <div
-                    className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden"
-                    style={{ background: 'oklch(0.88 0.02 80)' }}
+                    className="flex-1 flex items-center gap-2 rounded-2xl px-4"
+                    style={{
+                      background: 'oklch(0.88 0.02 80)',
+                      height: dims.ITEM_HEIGHT - 8,
+                    }}
                   >
-                    <FlagImg lang={lang} size={32} />
+                    {/* Flag badge */}
+                    <div
+                      className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden"
+                      style={{ background: 'oklch(0.88 0.02 80)' }}
+                    >
+                      <FlagImg lang={lang} size={32} />
+                    </div>
+
+                    {/* Language names */}
+                    <div className="flex-1 text-left min-w-0">
+                      <div
+                        className="font-body text-sm font-semibold leading-tight truncate"
+                        style={{
+                          color: isSelected
+                            ? 'oklch(0.38 0.09 210)'
+                            : 'oklch(0.28 0.015 55)',
+                        }}
+                      >
+                        {dict.langNative}
+                      </div>
+                      <div
+                        className="text-xs font-body leading-tight truncate"
+                        style={{ color: 'oklch(0.48 0.015 60)' }}
+                      >
+                        {dict.langName}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Language names */}
-                  <div className="flex-1 text-left min-w-0">
-                    <div
-                      className="font-body text-sm font-semibold leading-tight truncate"
-                      style={{
-                        color: isSelected
-                          ? 'oklch(0.38 0.09 210)'
-                          : 'oklch(0.28 0.015 55)',
-                      }}
-                    >
-                      {dict.langNative}
-                    </div>
-                    <div
-                      className="text-xs font-body leading-tight truncate"
-                      style={{ color: 'oklch(0.48 0.015 60)' }}
-                    >
-                      {dict.langName}
-                    </div>
-                  </div>
-
-                  {/* Check mark */}
+                  {/* Check mark - outside the container */}
                   {isSelected && (
                     <motion.div
                       layoutId="check"
