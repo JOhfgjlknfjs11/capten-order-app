@@ -1,19 +1,19 @@
 import { type Language, LANGUAGES } from './dictionary'
 
-// خريطة الكلمات الرئيسية لكل لغة
+// خريطة الكلمات الرئيسية لكل لغة - مع متغيرات وكلمات مرادفة متعددة
 const LANGUAGE_KEYWORDS: Record<Language, string[]> = {
-  en: ['english', 'english language', 'hello', 'hi'],
-  ar: ['العربية', 'عربي', 'arabic', 'hello', 'مرحبا'],
-  ru: ['русский', 'russian', 'привет', 'русский язык'],
-  fr: ['français', 'french', 'bonjour', 'la langue française'],
-  de: ['deutsch', 'german', 'hallo', 'die deutsche sprache'],
-  it: ['italiano', 'italian', 'ciao', 'la lingua italiana'],
-  es: ['español', 'spanish', 'hola', 'la lengua española'],
-  zh: ['中文', 'chinese', '你好', '普通话'],
-  ja: ['日本語', 'japanese', 'こんにちは', '日本語'],
-  pt: ['português', 'portuguese', 'olá', 'a língua portuguesa'],
-  tr: ['türkçe', 'turkish', 'merhaba', 'türk dili'],
-  ko: ['한국어', 'korean', '안녕하세요', '한국어'],
+  en: ['english', 'english language', 'hello', 'hi', 'ang', 'eng'],
+  ar: ['العربية', 'عربي', 'العربي', 'arabic', 'ara', 'مرحبا', 'سلام', 'التعريب'],
+  ru: ['русский', 'russian', 'привет', 'русский язык', 'рус'],
+  fr: ['français', 'french', 'bonjour', 'la langue française', 'fra', 'fre'],
+  de: ['deutsch', 'german', 'hallo', 'die deutsche sprache', 'deu', 'ger', 'duitsch'],
+  it: ['italiano', 'italian', 'ciao', 'la lingua italiana', 'ita', 'ita'],
+  es: ['español', 'spanish', 'hola', 'la lengua española', 'spa', 'spa', 'hispano'],
+  zh: ['中文', 'chinese', '你好', '普通话', '汉语', 'zho', 'chi', '中国'],
+  ja: ['日本語', 'japanese', 'こんにちは', '日本語', 'jpn', 'jap', '日本'],
+  pt: ['português', 'portuguese', 'olá', 'a língua portuguesa', 'por', 'pts'],
+  tr: ['türkçe', 'turkish', 'merhaba', 'türk dili', 'tur', 'tr'],
+  ko: ['한국어', 'korean', '안녕하세요', '한국어', 'kor', 'ko', '한국'],
 }
 
 // خريطة أكواد اللغات للـ Web Speech API
@@ -42,17 +42,24 @@ export function detectLanguageFromSpeech(transcript: string): Language | null {
   }
 
   const lowerTranscript = transcript.toLowerCase().trim()
+  const words = lowerTranscript.split(/\s+/)
 
   // بحث أولي عن كلمات مفتاحية دقيقة
   for (const [lang, keywords] of Object.entries(LANGUAGE_KEYWORDS)) {
     for (const keyword of keywords) {
-      if (lowerTranscript.includes(keyword.toLowerCase())) {
+      const keywordLower = keyword.toLowerCase()
+      // بحث دقيق - بداية الكلمة أو محتوى كامل
+      if (lowerTranscript.includes(keywordLower)) {
+        return lang as Language
+      }
+      // بحث على مستوى الكلمات المنفصلة
+      if (words.some(word => word.includes(keywordLower) || keywordLower.includes(word))) {
         return lang as Language
       }
     }
   }
 
-  // محاولة اكتشاف من خلال الأحرف
+  // محاولة اكتشاف من خلال الأحرف - الأولوية الأعلى
   // إذا كان يحتوي على أحرف عربية
   if (/[\u0600-\u06FF]/.test(transcript)) {
     return 'ar'
