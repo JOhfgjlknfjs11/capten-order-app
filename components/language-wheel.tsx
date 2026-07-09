@@ -336,13 +336,14 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
 
               return (
                 <motion.button
+                  layout
                   key={lang}
                   onClick={() => !isDragging.current && handleSelect(idx)}
-                  className="w-full flex items-center gap-3 focus:outline-none"
+                  className="w-full flex items-center gap-3 focus:outline-none pr-0"
                   style={{
                     height: dims.ITEM_HEIGHT,
-                    paddingLeft: 40,
-                    paddingRight: 36,
+                    paddingLeft: 16,
+                    paddingRight: 0,
                   }}
                   animate={{
                     opacity: distance === 0 ? 1 : distance === 1 ? 0.65 : 0.28,
@@ -350,6 +351,14 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   }}
                   transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 >
+                  {/* Background container for flag, text and checkmark */}
+                  <div
+                    className="flex-1 flex items-center gap-3 rounded-2xl px-4"
+                    style={{
+                      background: 'oklch(0.88 0.02 80)',
+                      height: dims.ITEM_HEIGHT - 8,
+                    }}
+                  >
                   {/* Flag badge */}
                   <div
                     className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
@@ -378,27 +387,28 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                     </div>
                   </div>
 
-                  {/* Check mark */}
-                  {isSelected && (
-                    <motion.div
-                      layoutId="check"
-                      className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                      style={{ background: 'oklch(0.42 0.09 210)' }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                    >
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3}
+                    {/* Check mark */}
+                    {isSelected && (
+                      <motion.div
+                        layoutId="check"
+                        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ background: 'oklch(0.42 0.09 210)' }}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </motion.div>
-                  )}
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </motion.div>
+                    )}
+                  </div>
                 </motion.button>
               )
             })}
