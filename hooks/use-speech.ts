@@ -28,7 +28,10 @@ export function useSpeech() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognitionAPI) return
+    if (!SpeechRecognitionAPI) {
+      setError('SpeechRecognition not available')
+      return
+    }
 
     const recognition = new SpeechRecognitionAPI()
     recognition.continuous = false
@@ -92,15 +95,34 @@ export function useSpeech() {
     onResultRef.current = options.onResult
     recognition.lang = options.language || 'en-US'
 
-    try {
-      recognition.start()
+    // طلب إذن المايك أولاً إن أمكن
+    const startRec = () => {
+      try {
+        recognition.start()
 
-      const maxDuration = options.maxDuration || 8000
-      timeoutRef.current = setTimeout(() => {
-        try { recognition.stop() } catch {}
-      }, maxDuration)
-    } catch (err) {
-      setError(String(err))
+        const maxDuration = options.maxDuration || 8000
+        timeoutRef.current = setTimeout(() => {
+          try { recognition.stop() } catch {}
+        }, maxDuration)
+      } catch (err) {
+        setError(String(err))
+      }
+    }
+
+    // في الـ browsers الحديثة، يمكن طلب الإذن قبل start
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then(() => {
+          startRec()
+        })
+        .catch((err) => {
+          setError('Microphone permission denied: ' + err.message)
+          // لكن نحاول مباشرة أيضاً
+          startRec()
+        })
+    } else {
+      startRec()
     }
   }, [])
 
