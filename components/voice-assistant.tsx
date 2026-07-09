@@ -11,9 +11,8 @@ import {
   playAudio,
   GREETING_MESSAGES,
   CONFIRMATION_MESSAGES,
-  type Language,
 } from '@/lib/text-to-speech'
-import { LANGUAGES } from '@/lib/dictionary'
+import { LANGUAGES, type Language } from '@/lib/dictionary'
 
 interface VoiceAssistantProps {
   onLanguageDetected: (language: Language, index: number) => void
@@ -53,7 +52,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
       setCurrentPhase('listening')
       startListening({ language: 'en-US' })
     } catch (error) {
-      console.error('[v0] Greeting error:', error)
+      // Silently handle errors - system works in background
       setCurrentPhase('listening')
       startListening({ language: 'en-US' })
     } finally {

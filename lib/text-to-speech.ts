@@ -20,8 +20,6 @@ export async function textToSpeech(
     const voiceId = options.voiceId || VOICE_ID
     const language = options.language || 'en'
 
-    console.log('[v0] TTS Request:', { text: text.substring(0, 30), voiceId: voiceId.substring(0, 8), language })
-
     const response = await fetch('/api/tts', {
       method: 'POST',
       headers: {
@@ -36,39 +34,34 @@ export async function textToSpeech(
       }),
     })
 
-    console.log('[v0] TTS Response status:', response.status)
-
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[v0] TTS error:', response.statusText, errorText)
       return null
     }
 
     const buffer = await response.arrayBuffer()
-    console.log('[v0] TTS Success:', buffer.byteLength, 'bytes')
     return buffer
   } catch (error) {
-    console.error('[v0] TTS error:', error)
     return null
   }
 }
 
 /**
  * تشغيل الصوت من ArrayBuffer (MP3)
+ * يعيد محاولة إذا فشل بسبب autoplay restriction
  */
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
   return new Promise((resolve) => {
     try {
-      console.log('[v0] بدء تشغيل الصوت، الحجم:', audioBuffer.byteLength)
-      
-      // أنشئ Blob من ArrayBuffer
+      // Create Blob from ArrayBuffer
       const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
       const url = URL.createObjectURL(blob)
 
-      // استخدم عنصر audio لتشغيل الصوت
+      // Create audio element
       const audio = new Audio()
       audio.src = url
       audio.type = 'audio/mpeg'
+      audio.crossOrigin = 'anonymous'
+      audio.preload = 'auto'
 
       let resolved = false
       const cleanup = () => {
@@ -80,36 +73,60 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
       }
 
       audio.onended = () => {
-        console.log('[v0] انتهى تشغيل الصوت')
         cleanup()
       }
 
-      audio.onerror = (error) => {
-        console.error('[v0] خطأ في تشغيل الصوت:', error)
+      audio.onerror = () => {
         cleanup()
       }
 
-      // timeout safety - 35 ثانية
+      // Timeout safety - 35 seconds
       const timeout = setTimeout(() => {
-        console.log('[v0] انتهت مهلة الصوت')
         cleanup()
       }, 35000)
 
-      // محاولة تشغيل الصوت
-      const playPromise = audio.play()
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise
-          .then(() => {
-            console.log('[v0] بدأ تشغيل الصوت بنجاح')
-          })
-          .catch((error) => {
-            console.error('[v0] خطأ في تشغيل الصوت:', error)
-            clearTimeout(timeout)
-            cleanup()
-          })
+      // Helper to trigger play with user gesture if needed
+      const attemptPlay = () => {
+        const playPromise = audio.play()
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise
+            .then(() => {
+              // Audio started successfully
+            })
+            .catch((playError: any) => {
+              // If blocked by autoplay policy, add click listener to document
+              if (playError?.name === 'NotAllowedError') {
+                const handleUserInteraction = () => {
+                  audio.play()
+                    .catch(() => {
+                      // Silent fail on subsequent attempts
+                    })
+                    .finally(() => {
+                      document.removeEventListener('click', handleUserInteraction, true)
+                      document.removeEventListener('touchstart', handleUserInteraction, true)
+                    })
+                }
+                
+                // Listen for any user interaction
+                document.addEventListener('click', handleUserInteraction, true)
+                document.addEventListener('touchstart', handleUserInteraction, true)
+                
+                // Timeout waiting for interaction
+                setTimeout(() => {
+                  document.removeEventListener('click', handleUserInteraction, true)
+                  document.removeEventListener('touchstart', handleUserInteraction, true)
+                  cleanup()
+                }, 5000)
+              } else {
+                clearTimeout(timeout)
+                cleanup()
+              }
+            })
+        }
       }
+
+      attemptPlay()
     } catch (error) {
-      console.error('[v0] خطأ في إعداد الصوت:', error)
       resolve()
     }
   })
