@@ -349,20 +349,21 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   }}
                   transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 >
-                  {/* Background container for flag and text */}
-                  <div className="flex-1 flex items-center gap-2">
+                  {/* Background container for flag, text and checkmark */}
+                  <div
+                    className="flex-1 flex items-center gap-3 rounded-2xl px-4"
+                    style={{
+                      background: 'oklch(0.88 0.02 80)',
+                      height: dims.ITEM_HEIGHT - 8,
+                    }}
+                  >
                     {/* Flag badge */}
                     <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
                       <FlagImg lang={lang} size={32} />
                     </div>
 
-                    {/* Language names with background */}
-                    <div
-                      className="flex-1 text-left min-w-0 rounded-2xl px-4 py-2"
-                      style={{
-                        background: 'oklch(0.88 0.02 80)',
-                      }}
-                    >
+                    {/* Language names */}
+                    <div className="flex-1 text-left min-w-0">
                       <div
                         className="font-body text-sm font-semibold leading-tight truncate"
                         style={{
@@ -380,29 +381,29 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                         {dict.langName}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Check mark - outside the container */}
-                  {isSelected && (
-                    <motion.div
-                      layoutId="check"
-                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ background: 'oklch(0.42 0.09 210)' }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                    >
-                      <svg
-                        className="w-4 h-4 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3}
+                    {/* Check mark */}
+                    {isSelected && (
+                      <motion.div
+                        layoutId="check"
+                        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ background: 'oklch(0.42 0.09 210)' }}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </motion.div>
-                  )}
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </motion.div>
+                    )}
+                  </div>
                 </motion.button>
               )
             })}
