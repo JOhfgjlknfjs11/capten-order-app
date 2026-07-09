@@ -7,6 +7,7 @@ import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 
 interface LanguageWheelProps {
   onSelect: (lang: Language) => void
+  voiceControlIndex?: number
 }
 
 const ITEM_HEIGHT = 72
@@ -66,12 +67,14 @@ function playTick() {
   }
 }
 
-export function LanguageWheel({ onSelect }: LanguageWheelProps) {
+export function LanguageWheel({ onSelect, voiceControlIndex }: LanguageWheelProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isSelecting, setIsSelecting] = useState(false)
   const y = useMotionValue(0)
   const isDragging = useRef(false)
   const lastSnappedIndex = useRef(0)
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isAutoScrolling = useRef(false)
 
   const clampIndex = (idx: number) =>
     Math.max(0, Math.min(LANGUAGES.length - 1, idx))
@@ -92,6 +95,57 @@ export function LanguageWheel({ onSelect }: LanguageWheelProps) {
     },
     [y]
   )
+
+  // التمرير التلقائي عند التحكم الصوتي
+  const autoScrollToIndex = useCallback(
+    async (targetIndex: number): Promise<void> => {
+      if (isAutoScrolling.current) return
+      isAutoScrolling.current = true
+
+      try {
+        const current = selectedIndex
+        const direction = targetIndex > current ? 1 : -1
+        const distance = Math.abs(targetIndex - current)
+        const stepDuration = Math.min(1500 / distance, 800) // سرعة تمرير سلسة ولكن سريعة
+
+        return new Promise((resolve) => {
+          let currentStep = 0
+
+          if (scrollIntervalRef.current) {
+            clearInterval(scrollIntervalRef.current)
+          }
+
+          scrollIntervalRef.current = setInterval(() => {
+            currentStep++
+            const nextIndex = current + direction * currentStep
+
+            if (
+              (direction > 0 && nextIndex >= targetIndex) ||
+              (direction < 0 && nextIndex <= targetIndex)
+            ) {
+              clearInterval(scrollIntervalRef.current!)
+              snapToIndex(targetIndex, true)
+              isAutoScrolling.current = false
+              resolve()
+            } else {
+              snapToIndex(nextIndex, true)
+            }
+          }, stepDuration / distance)
+        })
+      } catch (error) {
+        console.error('[v0] خطأ في التمرير التلقائي:', error)
+        isAutoScrolling.current = false
+      }
+    },
+    [selectedIndex, snapToIndex]
+  )
+
+  // رد على تغيير voiceControlIndex
+  useEffect(() => {
+    if (voiceControlIndex !== undefined && voiceControlIndex !== selectedIndex) {
+      autoScrollToIndex(voiceControlIndex)
+    }
+  }, [voiceControlIndex, selectedIndex, autoScrollToIndex])
 
   const handleSelect = useCallback(
     (idx: number) => {

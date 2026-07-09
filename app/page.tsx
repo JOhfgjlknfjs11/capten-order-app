@@ -9,6 +9,7 @@ import { WelcomeScreen } from '@/components/welcome-screen'
 import { MenuView } from '@/components/menu-view'
 import { ReviewView } from '@/components/review-view'
 import { TrackingView } from '@/components/tracking-view'
+import { VoiceAssistant } from '@/components/voice-assistant'
 
 type Step = 'language' | 'welcome' | 'menu' | 'review' | 'tracking'
 
@@ -49,11 +50,34 @@ export default function CaptenOrderApp() {
   const [language, setLanguage] = useState<Language>('en')
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderNumber] = useState(generateOrderNumber)
+  const [voiceSelectedLanguageIndex, setVoiceSelectedLanguageIndex] = useState<number | undefined>()
 
   const handleLanguageSelect = useCallback((lang: Language) => {
     setLanguage(lang)
     setStep('welcome')
   }, [])
+
+  const handleVoiceLanguageDetected = useCallback(
+    (language: Language, index: number) => {
+      setLanguage(language)
+      // تأخير طفيف للسماح برؤية التأكيد الصوتي
+      setTimeout(() => {
+        setStep('welcome')
+      }, 1500)
+    },
+    []
+  )
+
+  const handleAutoScroll = useCallback(
+    async (targetIndex: number): Promise<void> => {
+      return new Promise((resolve) => {
+        setVoiceSelectedLanguageIndex(targetIndex)
+        // انتظر اكتمال التمرير
+        setTimeout(resolve, 1500)
+      })
+    },
+    []
+  )
 
   const handleWelcomeComplete = useCallback(() => {
     setStep('menu')
@@ -97,6 +121,13 @@ export default function CaptenOrderApp() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
+      {step === 'language' && (
+        <VoiceAssistant
+          onLanguageDetected={handleVoiceLanguageDetected}
+          onAutoScroll={handleAutoScroll}
+        />
+      )}
+
       <AnimatePresence mode="wait">
         {step === 'language' && (
           <motion.div
@@ -105,7 +136,10 @@ export default function CaptenOrderApp() {
             className="relative min-h-screen flex items-center justify-center"
           >
             <GridBackground />
-            <LanguageWheel onSelect={handleLanguageSelect} />
+            <LanguageWheel
+              onSelect={handleLanguageSelect}
+              voiceControlIndex={voiceSelectedLanguageIndex}
+            />
           </motion.div>
         )}
 
