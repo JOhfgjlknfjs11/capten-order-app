@@ -51,6 +51,7 @@ export default function CaptenOrderApp() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderNumber] = useState(generateOrderNumber)
   const [voiceSelectedLanguageIndex, setVoiceSelectedLanguageIndex] = useState<number | undefined>()
+  const stopAudioRef = useRef<(() => void) | null>(null)
 
   const handleLanguageSelect = useCallback((lang: Language) => {
     setLanguage(lang)
@@ -131,6 +132,9 @@ export default function CaptenOrderApp() {
         <VoiceAssistant
           onLanguageDetected={handleVoiceLanguageDetected}
           onAutoScroll={handleAutoScroll}
+          onAudioStop={(stopAudio) => {
+            stopAudioRef.current = stopAudio
+          }}
         />
       )}
 
@@ -145,6 +149,11 @@ export default function CaptenOrderApp() {
             <LanguageWheel
               onSelect={handleLanguageSelect}
               voiceControlIndex={voiceSelectedLanguageIndex}
+              onAudioStop={() => {
+                if (stopAudioRef.current) {
+                  stopAudioRef.current()
+                }
+              }}
             />
           </motion.div>
         )}

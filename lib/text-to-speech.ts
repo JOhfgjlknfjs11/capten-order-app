@@ -47,8 +47,9 @@ export async function textToSpeech(
 
 /**
  * تشغيل الصوت من ArrayBuffer (MP3) باستخدام Web Audio API
+ * يرجع الـ source للتحكم فيه لاحقاً (إيقاف، إلخ)
  */
-export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
+export async function playAudio(audioBuffer: ArrayBuffer, onSourceReady?: (source: any) => void): Promise<void> {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
     const ctx = new AudioCtx()
@@ -64,6 +65,12 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
       const source = ctx.createBufferSource()
       source.buffer = decoded
       source.connect(ctx.destination)
+      
+      // إخطار الـ caller بـ source ليتمكن من إيقافه لاحقاً
+      if (onSourceReady) {
+        onSourceReady(source)
+      }
+      
       source.onended = () => {
         ctx.close()
         resolve()
@@ -77,6 +84,11 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
       const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
       const url  = URL.createObjectURL(blob)
       const audio = new Audio(url)
+      
+      if (onSourceReady) {
+        onSourceReady(audio)
+      }
+      
       audio.onended = () => { URL.revokeObjectURL(url); resolve() }
       audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
       setTimeout(resolve, 35000)

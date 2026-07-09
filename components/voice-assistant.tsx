@@ -20,9 +20,10 @@ const WELCOME_TEXT =
 interface VoiceAssistantProps {
   onLanguageDetected: (language: Language, index: number) => void
   onAutoScroll: (index: number) => Promise<void>
+  onAudioStop?: (stopAudio: () => void) => void
 }
 
-export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssistantProps) {
+export function VoiceAssistant({ onLanguageDetected, onAutoScroll, onAudioStop }: VoiceAssistantProps) {
   const { startListening, stopListening } = useSpeech()
   const [isMicActive, setIsMicActive] = useState(false)
 
@@ -30,10 +31,28 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
   const isProcessingRef    = useRef(false)   // منع المعالجة المتوازية
   const onAutoScrollRef    = useRef(onAutoScroll)
   const onLanguageDetRef   = useRef(onLanguageDetected)
+  const audioSourceRef     = useRef<any>(null) // تتبع الـ audio source الحالي لإيقافه
+
+  // --- دالة لإيقاف الصوت الحالي ---
+  const stopCurrentAudio = useCallback(() => {
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop()
+      } catch {}
+      audioSourceRef.current = null
+    }
+  }, [])
 
   // تحديث refs عند تغيير الـ props بدون إعادة تشغيل
   useEffect(() => { onAutoScrollRef.current    = onAutoScroll    }, [onAutoScroll])
   useEffect(() => { onLanguageDetRef.current   = onLanguageDetected }, [onLanguageDetected])
+  
+  // تمرير stopCurrentAudio للـ parent لاستخدامه في LanguageWheel
+  useEffect(() => {
+    if (onAudioStop) {
+      onAudioStop(stopCurrentAudio)
+    }
+  }, [onAudioStop, stopCurrentAudio])
 
   // --- المرحلة 2: فتح المايك بعد انتهاء الترحيب ---
   const openMicAndListen = useCallback(() => {
@@ -49,6 +68,9 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         isProcessingRef.current = true
         setIsMicActive(false)
         stopListening()
+        
+        // أوقف الصوت الحالي عند اكتشاف الكلام
+        stopCurrentAudio()
 
         try {
           // اكتشاف اللغة
@@ -77,7 +99,9 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
             voiceId:  VOICE_ID,
           })
           if (confirmBuffer) {
-            await playAudio(confirmBuffer)
+            await playAudio(confirmBuffer, (source) => {
+              audioSourceRef.current = source
+            })
           }
 
           // إبلاغ الـ parent بالاختيار
@@ -87,7 +111,7 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         }
       },
     })
-  }, [startListening, stopListening])
+  }, [startListening, stopListening, stopCurrentAudio])
 
   // --- المرحلة 1: تشغيل الترحيب فور تحميل المكوّن ---
   useEffect(() => {
@@ -101,7 +125,9 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
       })
 
       if (buffer) {
-        await playAudio(buffer)
+        await playAudio(buffer, (source) => {
+          audioSourceRef.current = source
+        })
       }
 
       openMicAndListen()
@@ -119,7 +145,9 @@ export function VoiceAssistant({ onLanguageDetected, onAutoScroll }: VoiceAssist
         voiceId:  VOICE_ID,
       })
       if (buffer) {
-        await playAudio(buffer)
+        await playAudio(buffer, (source) => {
+          audioSourceRef.current = source
+        })
       }
       openMicAndListen()
     }

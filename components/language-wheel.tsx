@@ -8,6 +8,7 @@ import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 interface LanguageWheelProps {
   onSelect: (lang: Language) => void
   voiceControlIndex?: number
+  onAudioStop?: () => void
 }
 
 const ITEM_HEIGHT = 72
@@ -67,7 +68,7 @@ function playTick() {
   }
 }
 
-export function LanguageWheel({ onSelect, voiceControlIndex }: LanguageWheelProps) {
+export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: LanguageWheelProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isSelecting, setIsSelecting] = useState(false)
   const y = useMotionValue(0)
@@ -159,12 +160,16 @@ export function LanguageWheel({ onSelect, voiceControlIndex }: LanguageWheelProp
     (idx: number) => {
       if (isSelecting) return
       setIsSelecting(true)
+      // أوقف الصوت الحالي عند اختيار اللغة
+      if (onAudioStop) {
+        onAudioStop()
+      }
       snapToIndex(idx)
       setTimeout(() => {
         onSelect(LANGUAGES[idx])
       }, 500)
     },
-    [isSelecting, snapToIndex, onSelect]
+    [isSelecting, snapToIndex, onSelect, onAudioStop]
   )
 
   const handleDragEnd = useCallback(() => {
