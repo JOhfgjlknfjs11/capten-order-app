@@ -339,11 +339,11 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                 <motion.button
                   key={lang}
                   onClick={() => !isDragging.current && handleSelect(idx)}
-                  className="w-full flex items-center gap-3 focus:outline-none"
+                  className="w-full flex items-center gap-2 focus:outline-none"
                   style={{
                     height: dims.ITEM_HEIGHT,
-                    paddingLeft: 40,
-                    paddingRight: 36,
+                    paddingLeft: 16,
+                    paddingRight: 16,
                   }}
                   animate={{
                     opacity: distance === 0 ? 1 : distance === 1 ? 0.65 : 0.28,
@@ -353,16 +353,16 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                 >
                   {/* Flag badge */}
                   <div
-                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
+                    className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden"
                     style={{ background: 'oklch(0.88 0.02 80)' }}
                   >
-                    <FlagImg lang={lang} size={28} />
+                    <FlagImg lang={lang} size={32} />
                   </div>
 
                   {/* Language names */}
                   <div className="flex-1 text-left min-w-0">
                     <div
-                      className="font-body text-base font-semibold leading-tight truncate"
+                      className="font-body text-sm font-semibold leading-tight truncate"
                       style={{
                         color: isSelected
                           ? 'oklch(0.38 0.09 210)'
@@ -372,7 +372,7 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                       {dict.langNative}
                     </div>
                     <div
-                      className="text-xs font-body leading-snug truncate"
+                      className="text-xs font-body leading-tight truncate"
                       style={{ color: 'oklch(0.48 0.015 60)' }}
                     >
                       {dict.langName}
@@ -383,14 +383,14 @@ export function LanguageWheel({ onSelect, voiceControlIndex, onAudioStop }: Lang
                   {isSelected && (
                     <motion.div
                       layoutId="check"
-                      className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
                       style={{ background: 'oklch(0.42 0.09 210)' }}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                     >
                       <svg
-                        className="w-3 h-3 text-white"
+                        className="w-4 h-4 text-white"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
