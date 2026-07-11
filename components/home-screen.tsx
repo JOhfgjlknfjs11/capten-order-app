@@ -23,9 +23,11 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
   const [speaking, setSpeaking] = useState(false)
   const [ready, setReady] = useState(false)
   const [showCaption, setShowCaption] = useState(false)
+  const [countdown, setCountdown] = useState<number | null>(null)
 
   const playbackRef = useRef<AmplitudePlaybackHandle | null>(null)
   const hasGreetedRef = useRef(false)
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const stopSpeaking = useCallback(() => {
     playbackRef.current?.stop()
@@ -47,7 +49,11 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
         ? playWithAmplitude(buffer, setAmplitude)
         : simulateSpeech(HOME_GREETING, setAmplitude)
       playbackRef.current = handle
-      await handle.finished
+      // Add timeout as fallback in case handle.finished hangs
+      await Promise.race([
+        handle.finished,
+        new Promise((resolve) => setTimeout(resolve, 8000)), // 8 second timeout
+      ])
     } catch {
       // في حال أي خطأ، شغّل الحركة التقديرية على الأقل
       const handle = simulateSpeech(HOME_GREETING, setAmplitude)
@@ -76,9 +82,52 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
   }, [greet, stopSpeaking])
 
   const handleStart = useCallback(() => {
+    // Stop countdown if it's running
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
+    setCountdown(null)
     stopSpeaking()
     onStart()
   }, [onStart, stopSpeaking])
+
+  // Start countdown when greeting finishes (ready becomes true)
+  useEffect(() => {
+    if (ready && countdown === null) {
+      // Wait 1 second after ready to ensure audio fully finishes playing
+      const timer = setTimeout(() => {
+        setCountdown(3)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [ready, countdown])
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null) return null
+          const next = prev - 1
+          if (next === 0) {
+            // Auto-click Start button when countdown reaches 0
+            setTimeout(() => {
+              handleStart()
+            }, 300)
+          }
+          return next > 0 ? next : null
+        })
+      }, 1000)
+    }
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current)
+        countdownIntervalRef.current = null
+      }
+    }
+  }, [countdown, handleStart])
 
   const handleReplay = useCallback(() => {
     if (speaking) {
@@ -172,6 +221,20 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
           experience.
         </p>
       </motion.div>
+
+      {/* عداد تنازلي - يظهر في الوسط أثناء العد */}
+      {countdown !== null && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+        >
+          <div className="text-9xl md:text-[200px] font-bold" style={{ color: 'oklch(0.42 0.09 210 / 0.3)' }}>
+            {countdown}
+          </div>
+        </motion.div>
+      )}
 
       {/* الأزرار */}
       <motion.div
