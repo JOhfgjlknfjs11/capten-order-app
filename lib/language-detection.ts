@@ -33,6 +33,37 @@ const LANGUAGE_CODES: Record<Language, string> = {
 }
 
 /**
+ * اكتشف اللغة باستخدام Grok API
+ * يرسل النص إلى API للحصول على كشف دقيق
+ */
+export async function detectLanguageWithGrok(transcript: string): Promise<Language | null> {
+  try {
+    const response = await fetch('/api/detect-language', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ transcript }),
+    })
+
+    if (!response.ok) {
+      console.error('[v0] Grok detection failed:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+    if (data.detectedLanguage && data.confidence > 50) {
+      console.log('[v0] Grok detected language:', data.detectedLanguage, 'confidence:', data.confidence)
+      return data.detectedLanguage
+    }
+    return null
+  } catch (error) {
+    console.error('[v0] Error calling Grok API:', error)
+    return null
+  }
+}
+
+/**
  * اكتشف اللغة من النص المحول من الكلام
  * يبحث عن كلمات مفتاحية ويرجع اللغة الأكثر احتمالاً
  */
