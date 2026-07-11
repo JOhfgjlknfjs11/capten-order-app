@@ -5,13 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { type Language } from '@/lib/dictionary'
 import { type MenuItem } from '@/lib/menu-data'
 import { LanguageWheel } from '@/components/language-wheel'
+import { HomeScreen } from '@/components/home-screen'
 import { WelcomeScreen } from '@/components/welcome-screen'
 import { MenuView } from '@/components/menu-view'
 import { ReviewView } from '@/components/review-view'
 import { TrackingView } from '@/components/tracking-view'
 import { VoiceAssistant } from '@/components/voice-assistant'
 
-type Step = 'language' | 'welcome' | 'menu' | 'review' | 'tracking'
+type Step = 'home' | 'language' | 'welcome' | 'menu' | 'review' | 'tracking'
 
 export interface CartItem {
   item: MenuItem
@@ -46,12 +47,16 @@ function GridBackground() {
 }
 
 export default function CaptenOrderApp() {
-  const [step, setStep] = useState<Step>('language')
+  const [step, setStep] = useState<Step>('home')
   const [language, setLanguage] = useState<Language>('en')
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderNumber] = useState(generateOrderNumber)
   const [voiceSelectedLanguageIndex, setVoiceSelectedLanguageIndex] = useState<number | undefined>()
   const stopAudioRef = useRef<(() => void) | null>(null)
+
+  const handleStartFromHome = useCallback(() => {
+    setStep('language')
+  }, [])
 
   const handleLanguageSelect = useCallback((lang: Language) => {
     setLanguage(lang)
@@ -139,6 +144,17 @@ export default function CaptenOrderApp() {
       )}
 
       <AnimatePresence mode="wait">
+        {step === 'home' && (
+          <motion.div
+            key="home"
+            {...PAGE_TRANSITIONS}
+            className="relative min-h-screen"
+          >
+            <GridBackground />
+            <HomeScreen onStart={handleStartFromHome} />
+          </motion.div>
+        )}
+
         {step === 'language' && (
           <motion.div
             key="language"

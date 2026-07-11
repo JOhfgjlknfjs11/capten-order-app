@@ -1,12 +1,8 @@
 import { type Language } from './dictionary'
 
-const VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
-
 interface TextToSpeechOptions {
   language?: Language
   voiceId?: string
-  stability?: number
-  similarityBoost?: number
 }
 
 /**
@@ -17,7 +13,6 @@ export async function textToSpeech(
   options: TextToSpeechOptions = {}
 ): Promise<ArrayBuffer | null> {
   try {
-    const voiceId = options.voiceId || VOICE_ID
     const language = options.language || 'en'
 
     const response = await fetch('/api/tts', {
@@ -27,10 +22,8 @@ export async function textToSpeech(
       },
       body: JSON.stringify({
         text,
-        voiceId,
+        voiceId: options.voiceId,
         language,
-        stability: options.stability || 0.5,
-        similarityBoost: options.similarityBoost || 0.75,
       }),
     })
 
