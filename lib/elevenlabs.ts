@@ -39,14 +39,27 @@ export async function textToSpeech({
     const audio = await generate(voiceId, text, language)
     return { audio, usedFallback: false }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error('[v0] ElevenLabs error with voice', voiceId, ':', errorMessage)
+    
     // الحسابات المجانية لا تستطيع استخدام الأصوات الاحترافية/المكتبة (خطأ 402).
     // في هذه الحالة نستخدم صوتاً مجانياً (premade) تلقائياً حتى يعمل الصوت.
     const isPaymentRequired =
-      error instanceof Error && /402|payment_required|paid_plan/i.test(error.message)
+      /402|payment_required|paid_plan/i.test(errorMessage)
+    
+    // Also check for auth errors and try fallback
+    const isAuthError = /401|unauthorized|invalid|api_key/i.test(errorMessage)
 
-    if (isPaymentRequired && voiceId !== FALLBACK_VOICE_ID) {
-      const audio = await generate(FALLBACK_VOICE_ID, text, language)
-      return { audio, usedFallback: true }
+    if ((isPaymentRequired || isAuthError) && voiceId !== FALLBACK_VOICE_ID) {
+      console.log('[v0] Attempting fallback voice due to error:', isPaymentRequired ? '402' : '401')
+      try {
+        const audio = await generate(FALLBACK_VOICE_ID, text, language)
+        return { audio, usedFallback: true }
+      } catch (fallbackError) {
+        const fallbackMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+        console.error('[v0] Fallback voice also failed:', fallbackMsg)
+        throw fallbackError
+      }
     }
     throw error
   }
