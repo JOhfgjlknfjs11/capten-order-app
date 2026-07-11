@@ -227,7 +227,7 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
                     <FlagImg lang={lang} size={36} />
                   </div>
                   <div className="font-semibold text-sm sm:text-base truncate">
-                    {dictionary[lang].langName}
+                    {dictionary[lang].langNative}
                   </div>
                 </div>
 
