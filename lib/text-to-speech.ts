@@ -1,23 +1,20 @@
 import { type Language } from './dictionary'
 
-const VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
-
 interface TextToSpeechOptions {
   language?: Language
+  voiceName?: string
+  /** @deprecated احتفظنا به للتوافق مع النداءات القديمة */
   voiceId?: string
-  stability?: number
-  similarityBoost?: number
 }
 
 /**
- * تحويل النص إلى كلام باستخدام ElevenLabs
+ * تحويل النص إلى كلام باستخدام Gemini TTS
  */
 export async function textToSpeech(
   text: string,
   options: TextToSpeechOptions = {}
 ): Promise<ArrayBuffer | null> {
   try {
-    const voiceId = options.voiceId || VOICE_ID
     const language = options.language || 'en'
 
     const response = await fetch('/api/tts', {
@@ -27,10 +24,8 @@ export async function textToSpeech(
       },
       body: JSON.stringify({
         text,
-        voiceId,
+        voiceName: options.voiceName,
         language,
-        stability: options.stability || 0.5,
-        similarityBoost: options.similarityBoost || 0.75,
       }),
     })
 

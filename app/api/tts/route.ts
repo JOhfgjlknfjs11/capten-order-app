@@ -1,26 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { textToSpeech, DEFAULT_VOICE_ID } from '@/lib/elevenlabs'
+import { textToSpeech, GEMINI_VOICE_BY_LANGUAGE, DEFAULT_GEMINI_VOICE } from '@/lib/gemini'
+import { type Language } from '@/lib/dictionary'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, voiceId, language } = await request.json()
+    const { text, voiceName, language } = await request.json()
 
     if (!text?.trim()) {
       return NextResponse.json({ error: 'text is required' }, { status: 400 })
     }
 
+    const resolvedVoice =
+      voiceName?.trim() ||
+      GEMINI_VOICE_BY_LANGUAGE[(language as Language) ?? 'en'] ||
+      DEFAULT_GEMINI_VOICE
+
     const audioBuffer = await textToSpeech({
       text,
-      voiceId: voiceId?.trim() || DEFAULT_VOICE_ID,
-      language: language || 'en',
+      voiceName: resolvedVoice,
     })
 
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(new Uint8Array(audioBuffer), {
       status: 200,
       headers: {
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': 'audio/wav',
         'Content-Length': audioBuffer.length.toString(),
         'Cache-Control': 'no-cache',
       },
