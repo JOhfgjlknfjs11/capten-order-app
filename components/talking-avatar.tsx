@@ -12,6 +12,10 @@ interface TalkingAvatarProps {
   size?: number
   /** مسار صورة الأفاتار */
   src?: string
+  /** موضع الفم رأسياً كنسبة من أعلى الصورة (0..1) */
+  mouthTop?: number
+  /** موضع الفم أفقياً كنسبة من يسار الصورة (0..1) */
+  mouthLeft?: number
 }
 
 /**
@@ -23,6 +27,8 @@ export function TalkingAvatar({
   speaking,
   size = 240,
   src = '/avatar.png',
+  mouthTop = 0.42,
+  mouthLeft = 0.52,
 }: TalkingAvatarProps) {
   // تنعيم مستوى الصوت لحركة فم أكثر طبيعية
   const [smoothed, setSmoothed] = useState(0)
@@ -128,10 +134,11 @@ export function TalkingAvatar({
         {/* طبقة الفم المتحركة - تظهر فقط أثناء الكلام */}
         {speaking && (
           <div
-            className="absolute left-1/2 pointer-events-none"
+            className="absolute pointer-events-none"
             style={{
-              bottom: '24%',
-              transform: 'translateX(-50%)',
+              top: `${mouthTop * 100}%`,
+              left: `${mouthLeft * 100}%`,
+              transform: 'translate(-50%, -50%)',
               width: mouthWidth,
               height: mouthHeight,
               borderRadius: '0 0 50% 50% / 0 0 60% 60%',
