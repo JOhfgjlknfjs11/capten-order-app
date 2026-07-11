@@ -76,7 +76,7 @@ export async function playAudio(audioBuffer: ArrayBuffer, onSourceReady?: (sourc
   } catch {
     // fallback: HTML Audio element
     return new Promise((resolve) => {
-      const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
+      const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/wav' })
       const url  = URL.createObjectURL(blob)
       const audio = new Audio(url)
       

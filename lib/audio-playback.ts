@@ -8,6 +8,52 @@ export interface AmplitudePlaybackHandle {
   finished: Promise<void>
 }
 
+/**
+ * حركة فم تقديرية بدون صوت (عند نفاد حصة الصوت أو حظر التشغيل التلقائي).
+ * تقدّر مدة الكلام من طول النص وتولّد نبضات فم طبيعية.
+ */
+export function simulateSpeech(
+  text: string,
+  onAmplitude: (level: number) => void
+): AmplitudePlaybackHandle {
+  let stopped = false
+  let rafId = 0
+  let resolveFinished: () => void = () => {}
+  const finished = new Promise<void>((resolve) => {
+    resolveFinished = resolve
+  })
+
+  // ~65 حرف في الثانية تقريباً لإيقاع كلام مريح
+  const durationMs = Math.min(16000, Math.max(2500, (text.length / 12) * 1000))
+  const start = performance.now()
+
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    if (rafId) cancelAnimationFrame(rafId)
+    onAmplitude(0)
+    resolveFinished()
+  }
+
+  const tick = (now: number) => {
+    if (stopped) return
+    const elapsed = now - start
+    if (elapsed >= durationMs) {
+      stop()
+      return
+    }
+    // نبض فم شبيه بالمقاطع الصوتية: موجتان جيبيتان + عشوائية خفيفة
+    const t = elapsed / 140
+    const base = (Math.sin(t) * 0.5 + 0.5) * (Math.sin(t * 2.3) * 0.5 + 0.5)
+    const level = Math.min(1, base * 0.8 + Math.random() * 0.15)
+    onAmplitude(level)
+    rafId = requestAnimationFrame(tick)
+  }
+
+  rafId = requestAnimationFrame(tick)
+  return { stop, finished }
+}
+
 export function playWithAmplitude(
   audioBuffer: ArrayBuffer,
   onAmplitude: (level: number) => void
