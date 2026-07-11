@@ -28,18 +28,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'text is required' }, { status: 400 })
     }
 
-    const audioBuffer = await textToSpeech({
+    const { audio, usedFallback } = await textToSpeech({
       text,
       voiceId: voiceId?.trim() || DEFAULT_VOICE_ID,
       language: LANGUAGE_CODES[(language as Language) ?? 'en'],
     })
 
-    return new NextResponse(new Uint8Array(audioBuffer), {
+    return new NextResponse(new Uint8Array(audio), {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Length': audioBuffer.length.toString(),
+        'Content-Length': audio.length.toString(),
         'Cache-Control': 'no-cache',
+        'X-Voice-Fallback': usedFallback ? '1' : '0',
       },
     })
   } catch (error) {
