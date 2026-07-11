@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 interface TalkingAvatarProps {
-  /** مستوى الصوت اللحظي 0..1 لتحريك الفم */
+  /** مستوى الصوت اللحظي 0..1 لتحريك الشخصية */
   amplitude: number
   /** هل الأفاتار بيتكلم حالياً (لإظهار مؤشرات نشطة) */
   speaking: boolean
@@ -12,25 +12,20 @@ interface TalkingAvatarProps {
   size?: number
   /** مسار صورة الأفاتار */
   src?: string
-  /** موضع الفم رأسياً كنسبة من أعلى الصورة (0..1) */
-  mouthTop?: number
-  /** موضع الفم أفقياً كنسبة من يسار الصورة (0..1) */
-  mouthLeft?: number
 }
 
 /**
- * أفاتار متكلم: صورة ثابتة + طبقة فم متحركة متزامنة مع الصوت
- * + رمش عين + حركة رأس خفيفة لإعطاء إحساس شخص حقيقي بيتكلم.
+ * أفاتار متكلم: نحرّك صورة الشخصية نفسها (اهتزاز رأسي + نبضة تكبير + ميلان خفيف)
+ * متزامنة مع مستوى الصوت، بدون أي طبقة فم مركّبة فوق الصورة.
+ * + رمش دوري + حركة تنفّس خفيفة لإحساس شخص حقيقي بيتكلم.
  */
 export function TalkingAvatar({
   amplitude,
   speaking,
   size = 240,
   src = '/avatar.png',
-  mouthTop = 0.42,
-  mouthLeft = 0.52,
 }: TalkingAvatarProps) {
-  // تنعيم مستوى الصوت لحركة فم أكثر طبيعية
+  // تنعيم مستوى الصوت لحركة أكثر طبيعية
   const [smoothed, setSmoothed] = useState(0)
   const rafRef = useRef(0)
   const targetRef = useRef(0)
@@ -43,7 +38,7 @@ export function TalkingAvatar({
   useEffect(() => {
     const animate = () => {
       // انتقال ناعم نحو القيمة الهدف
-      currentRef.current += (targetRef.current - currentRef.current) * 0.35
+      currentRef.current += (targetRef.current - currentRef.current) * 0.3
       setSmoothed(currentRef.current)
       rafRef.current = requestAnimationFrame(animate)
     }
@@ -51,10 +46,14 @@ export function TalkingAvatar({
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
-  // درجة فتح الفم: ارتفاع الطبقة يتغير حسب الصوت
-  const mouthOpen = Math.min(1, smoothed)
-  const mouthHeight = 3 + mouthOpen * 22 // من 3px (مغلق) إلى ~25px (مفتوح)
-  const mouthWidth = 34 + mouthOpen * 10
+  // مستوى الحركة المدفوع بالصوت (0..1)
+  const level = Math.min(1, smoothed)
+
+  // تحويلات الصورة المتزامنة مع الصوت:
+  // - نبضة تكبير خفيفة عند ارتفاع الصوت (كأنه يتحرك ناحية الكاميرا وهو بيتكلم)
+  // - اهتزاز رأسي خفيف لأعلى مع الصوت
+  const imgScale = 1 + level * 0.05
+  const imgTranslateY = -level * 6
 
   return (
     <div
@@ -84,13 +83,13 @@ export function TalkingAvatar({
       <div
         className="absolute rounded-full transition-all duration-100"
         style={{
-          inset: -6 - mouthOpen * 10,
+          inset: -6 - level * 10,
           border: '2px solid oklch(0.75 0.14 78)',
-          opacity: speaking ? 0.4 + mouthOpen * 0.5 : 0.25,
+          opacity: speaking ? 0.4 + level * 0.5 : 0.25,
         }}
       />
 
-      {/* حاوية الأفاتار مع حركة رأس خفيفة */}
+      {/* حاوية الأفاتار مع حركة رأس/تنفّس خفيفة */}
       <motion.div
         className="absolute inset-2 rounded-full overflow-hidden"
         style={{
@@ -109,16 +108,22 @@ export function TalkingAvatar({
           ease: 'easeInOut',
         }}
       >
-        {/* صورة الأفاتار */}
+        {/* صورة الشخصية — تتحرك نفسها مع الصوت */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src || '/placeholder.svg'}
           alt=""
           className="w-full h-full object-cover"
           draggable={false}
+          style={{
+            transform: `scale(${imgScale}) translateY(${imgTranslateY}px)`,
+            transformOrigin: 'center 40%',
+            transition: 'transform 70ms linear',
+            willChange: 'transform',
+          }}
         />
 
-        {/* طبقة الرمش: جفن ينزل بشكل دوري */}
+        {/* طبقة الرمش: تعتيم خفيف دوري يوحي بالرمش */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'oklch(0 0 0 / 0.0)' }}
@@ -130,38 +135,6 @@ export function TalkingAvatar({
             ease: 'linear',
           }}
         />
-
-        {/* طبقة الفم المتحركة - تظهر فقط أثناء الكلام */}
-        {speaking && (
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              top: `${mouthTop * 100}%`,
-              left: `${mouthLeft * 100}%`,
-              transform: 'translate(-50%, -50%)',
-              width: mouthWidth,
-              height: mouthHeight,
-              borderRadius: '0 0 50% 50% / 0 0 60% 60%',
-              background:
-                'radial-gradient(ellipse at center, oklch(0.28 0.06 20) 0%, oklch(0.2 0.05 20) 60%, oklch(0.15 0.04 20) 100%)',
-              boxShadow: 'inset 0 2px 4px oklch(0 0 0 / 0.5)',
-              opacity: 0.15 + mouthOpen * 0.85,
-              transition: 'height 60ms linear, width 60ms linear, opacity 60ms linear',
-            }}
-          >
-            {/* خط الأسنان العلوي */}
-            <div
-              className="absolute top-0 left-1/2 -translate-x-1/2"
-              style={{
-                width: '80%',
-                height: 3,
-                background: 'oklch(0.95 0.01 85)',
-                borderRadius: '0 0 3px 3px',
-                opacity: mouthOpen > 0.25 ? 1 : 0,
-              }}
-            />
-          </div>
-        )}
       </motion.div>
     </div>
   )

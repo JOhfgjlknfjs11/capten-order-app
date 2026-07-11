@@ -1,15 +1,17 @@
 import { ElevenLabsClient } from 'elevenlabs'
 
-const ELEVENLABS_API_KEY = 'sk_a1c3af2b173d4dca1500a480f425e4906cde3cd5b73a2ee9'
-export const DEFAULT_VOICE_ID   = 'hpp4J3VqNfWAUOO0d1Us'
+// صوت الأفاتار على ElevenLabs (Voice ID)
+export const DEFAULT_VOICE_ID = 'wWWn96OtTHu1sn8SRGEr'
 
 let client: ElevenLabsClient | null = null
 
 function getClient(): ElevenLabsClient {
+  const apiKey = process.env.ELEVENLABS_API_KEY
+  if (!apiKey) {
+    throw new Error('ELEVENLABS_API_KEY is not set')
+  }
   if (!client) {
-    client = new ElevenLabsClient({
-      apiKey: process.env.ELEVENLABS_API_KEY || ELEVENLABS_API_KEY,
-    })
+    client = new ElevenLabsClient({ apiKey })
   }
   return client
 }
