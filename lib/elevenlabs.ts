@@ -64,13 +64,6 @@ async function generate(
     text,
     model_id: 'eleven_multilingual_v2',
     language_code: language,
-    // نبرة دافئة وثابتة تناسب كابتن مطعم راقٍ وناضج
-    voice_settings: {
-      stability: 0.55,
-      similarity_boost: 0.85,
-      style: 0.35,
-      use_speaker_boost: true,
-    },
   })
 
   const chunks: Buffer[] = []

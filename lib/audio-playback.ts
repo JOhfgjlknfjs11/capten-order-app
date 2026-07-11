@@ -6,8 +6,6 @@
 export interface AmplitudePlaybackHandle {
   stop: () => void
   finished: Promise<void>
-  /** يتحقق بـ true إذا بدأ الصوت فعلياً، أو false إذا منعه المتصفح (autoplay) */
-  started: Promise<boolean>
 }
 
 /**
@@ -53,7 +51,7 @@ export function simulateSpeech(
   }
 
   rafId = requestAnimationFrame(tick)
-  return { stop, finished, started: Promise.resolve(true) }
+  return { stop, finished }
 }
 
 export function playWithAmplitude(
@@ -65,24 +63,14 @@ export function playWithAmplitude(
   let source: AudioBufferSourceNode | null = null
   let rafId = 0
   let resolveFinished: () => void = () => {}
-  let resolveStarted: (ok: boolean) => void = () => {}
-  let startedSettled = false
 
   const finished = new Promise<void>((resolve) => {
     resolveFinished = resolve
-  })
-  const started = new Promise<boolean>((resolve) => {
-    resolveStarted = (ok: boolean) => {
-      if (startedSettled) return
-      startedSettled = true
-      resolve(ok)
-    }
   })
 
   const cleanup = () => {
     if (rafId) cancelAnimationFrame(rafId)
     onAmplitude(0)
-    resolveStarted(false)
     try {
       source?.stop()
     } catch {}
@@ -103,16 +91,7 @@ export function playWithAmplitude(
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       ctx = new AudioCtx()
       if (ctx.state === 'suspended') {
-        try {
-          await ctx.resume()
-        } catch {}
-      }
-
-      // إذا ظل السياق موقوفاً فهذا يعني أن المتصفح منع التشغيل التلقائي
-      if (ctx.state !== 'running') {
-        resolveStarted(false)
-        cleanup()
-        return
+        await ctx.resume()
       }
 
       const decoded = await ctx.decodeAudioData(audioBuffer.slice(0))
@@ -156,12 +135,11 @@ export function playWithAmplitude(
       }
 
       source.start(0)
-      resolveStarted(true)
       rafId = requestAnimationFrame(tick)
     } catch {
       // fallback بدون تحليل: مجرد تشغيل عبر HTMLAudio
       try {
-        const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
+        const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/wav' })
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
         audio.onended = () => {
@@ -175,7 +153,6 @@ export function playWithAmplitude(
           rafId = requestAnimationFrame(fakeTick)
         }
         audio.play().then(() => {
-          resolveStarted(true)
           rafId = requestAnimationFrame(fakeTick)
         }).catch(() => stop())
       } catch {
