@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, ChevronDown, Check, Globe, Settings } from 'lucide-react'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 import { MENU_ITEMS, getItemName, getItemDescription, type Category, type MenuItem } from '@/lib/menu-data'
+import { GeminiFoodCard } from '@/components/gemini-food-card'
 
 interface CartItem {
   item: MenuItem
@@ -36,105 +37,7 @@ const BADGE_COLORS: Record<string, string> = {
   Vegan: 'oklch(0.55 0.12 145)',
 }
 
-function FoodCard({
-  item,
-  dict,
-  language,
-  onAdd,
-  added,
-}: {
-  item: MenuItem
-  dict: ReturnType<typeof dictionary[Language]>
-  language: Language
-  onAdd: () => void
-  added: boolean
-}) {
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      whileHover={{
-        y: -4,
-        rotateX: 3,
-        rotateY: -2,
-        scale: 1.01,
-      }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className="rounded-2xl overflow-hidden cursor-pointer"
-      style={{
-        background: 'oklch(0.99 0.004 85)',
-        boxShadow:
-          '8px 8px 20px oklch(0.85 0.01 80 / 0.7), -4px -4px 12px oklch(1 0.002 90 / 0.9), 0 2px 4px oklch(0.85 0.01 80 / 0.2)',
-        transformStyle: 'preserve-3d',
-        perspective: '1000px',
-      }}
-    >
-      {/* Image */}
-      <div className="relative h-48 overflow-hidden">
-        <Image
-          src={item.image}
-          alt={getItemName(item, language)}
-          fill
-          className="object-cover transition-transform duration-500 hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        {item.badge && (
-          <div
-            className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-white text-xs font-semibold font-body backdrop-blur-sm"
-            style={{ background: `${BADGE_COLORS[item.badge]}cc` }}
-          >
-            {item.badge}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="font-sans text-base font-bold text-foreground leading-tight mb-1">
-          {getItemName(item, language)}
-        </h3>
-        <p className="font-body text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-          {getItemDescription(item, language)}
-        </p>
-
-        <div className="flex items-center justify-between">
-          <span
-            className="font-sans text-xl font-bold"
-            style={{ color: 'oklch(0.42 0.09 210)' }}
-          >
-            ${item.price.toFixed(2)}
-          </span>
-
-          <motion.button
-            onClick={onAdd}
-            whileTap={{ scale: 0.92 }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold font-body text-white transition-all"
-            style={{
-              background: added
-                ? 'oklch(0.6 0.08 140)'
-                : 'oklch(0.42 0.09 210)',
-              boxShadow: '3px 3px 8px oklch(0.42 0.09 210 / 0.3)',
-            }}
-          >
-            {added ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>{dict.added}</span>
-              </>
-            ) : (
-              <>
-                <span>+</span>
-                <span>{dict.addToCart}</span>
-              </>
-            )}
-          </motion.button>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
+// FoodCard now uses GeminiFoodCard internally
 
 export function MenuView({
   language,
@@ -349,13 +252,14 @@ export function MenuView({
         >
           <AnimatePresence mode="popLayout">
             {filteredItems.map((item) => (
-              <FoodCard
+              <GeminiFoodCard
                 key={item.id}
                 item={item}
                 dict={dict}
                 language={language}
                 onAdd={() => handleAdd(item)}
                 added={recentlyAdded.has(item.id)}
+                useGemini={true}
               />
             ))}
           </AnimatePresence>
