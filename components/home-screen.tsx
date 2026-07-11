@@ -95,8 +95,11 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
   // Start countdown when greeting finishes (ready becomes true)
   useEffect(() => {
     if (ready && countdown === null) {
-      // Start countdown only once when ready becomes true
-      setCountdown(3)
+      // Wait 1 second after ready to ensure audio fully finishes playing
+      const timer = setTimeout(() => {
+        setCountdown(3)
+      }, 1000)
+      return () => clearTimeout(timer)
     }
   }, [ready, countdown])
 
