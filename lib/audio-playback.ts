@@ -139,10 +139,14 @@ export function playWithAmplitude(
     } catch {
       // fallback بدون تحليل: مجرد تشغيل عبر HTMLAudio
       try {
-        const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/wav' })
+        const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
         audio.onended = () => {
+          URL.revokeObjectURL(url)
+          stop()
+        }
+        audio.onerror = () => {
           URL.revokeObjectURL(url)
           stop()
         }
