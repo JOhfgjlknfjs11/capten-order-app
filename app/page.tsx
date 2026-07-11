@@ -179,22 +179,7 @@ export default function CaptenOrderApp() {
         )}
       </AnimatePresence>
 
-      {/* Persistent Avatar - visible on all pages except home and after order complete */}
-      {showAvatar && (
-        <motion.div
-          className="fixed top-4 right-4 sm:top-6 sm:right-6 z-40"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-        >
-          <TalkingAvatar
-            amplitude={avatarAmplitude}
-            speaking={avatarSpeaking}
-            size={120}
-            src="/avatar.png"
-          />
-        </motion.div>
-      )}
+
     </div>
   )
 }

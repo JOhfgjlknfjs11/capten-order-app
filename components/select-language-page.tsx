@@ -8,6 +8,7 @@ import { TalkingAvatar } from '@/components/talking-avatar'
 import { playWithAmplitude, simulateSpeech } from '@/lib/audio-playback'
 import { textToSpeech } from '@/lib/text-to-speech'
 import { GREETING_MESSAGES } from '@/lib/text-to-speech'
+import { MicrophoneButton } from '@/components/microphone-button'
 
 interface SelectLanguagePageProps {
   onSelect: (lang: Language) => void
@@ -49,8 +50,10 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
   const [amplitude, setAmplitude] = useState(0)
   const [speaking, setSpeaking] = useState(false)
   const [selectedLang, setSelectedLang] = useState<Language | null>(null)
+  const [showMicrophone, setShowMicrophone] = useState(false)
   const playbackHandleRef = useRef<any>(null)
   const hasPlayedGreetingRef = useRef(false)
+  const microphoneKeyRef = useRef(0) // Key to force remount/restart of microphone
 
   // Play greeting when component mounts
   useEffect(() => {
@@ -64,6 +67,7 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       try {
         const buffer = await textToSpeech(greetingText, {
           language,
+          voiceId: 'wWWn96OtTHu1sn8SRGEr',
         })
 
         if (buffer) {
@@ -81,11 +85,22 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       } finally {
         setSpeaking(false)
         setAmplitude(0)
+        // Show microphone after greeting finishes
+        setShowMicrophone(true)
       }
     }
 
     playGreeting()
   }, [language])
+
+  const handleLanguageDetected = useCallback(
+    (detectedLang: Language) => {
+      if (selectedLang === null) {
+        handleLanguageClick(detectedLang)
+      }
+    },
+    [selectedLang]
+  )
 
   const handleLanguageClick = useCallback(
     (lang: Language) => {
@@ -104,6 +119,7 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
         try {
           const buffer = await textToSpeech(confirmationText, {
             language: lang,
+            voiceId: 'wWWn96OtTHu1sn8SRGEr',
           })
 
           if (buffer) {
@@ -253,6 +269,16 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
           ) : null}
         </motion.div>
       </div>
+
+      {/* Microphone Button - Auto-starts when greeting finishes */}
+      {showMicrophone && (
+        <MicrophoneButton
+          key={microphoneKeyRef.current}
+          onLanguageDetected={handleLanguageDetected}
+          autoStart={true}
+          disabled={speaking || selectedLang !== null}
+        />
+      )}
     </div>
   )
 }
