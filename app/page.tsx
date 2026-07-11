@@ -4,13 +4,13 @@ import { useState, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { type Language } from '@/lib/dictionary'
 import { type MenuItem } from '@/lib/menu-data'
-import { LanguageWheel } from '@/components/language-wheel'
+import { SelectLanguagePage } from '@/components/select-language-page'
 import { HomeScreen } from '@/components/home-screen'
 import { WelcomeScreen } from '@/components/welcome-screen'
 import { MenuView } from '@/components/menu-view'
 import { ReviewView } from '@/components/review-view'
 import { TrackingView } from '@/components/tracking-view'
-import { VoiceAssistant } from '@/components/voice-assistant'
+import { TalkingAvatar } from '@/components/talking-avatar'
 
 type Step = 'home' | 'language' | 'welcome' | 'menu' | 'review' | 'tracking'
 
@@ -51,8 +51,9 @@ export default function CaptenOrderApp() {
   const [language, setLanguage] = useState<Language>('en')
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderNumber] = useState(generateOrderNumber)
-  const [voiceSelectedLanguageIndex, setVoiceSelectedLanguageIndex] = useState<number | undefined>()
-  const stopAudioRef = useRef<(() => void) | null>(null)
+  const [avatarAmplitude, setAvatarAmplitude] = useState(0)
+  const [avatarSpeaking, setAvatarSpeaking] = useState(false)
+  const orderCompleteRef = useRef(false)
 
   const handleStartFromHome = useCallback(() => {
     setStep('language')
@@ -62,34 +63,6 @@ export default function CaptenOrderApp() {
     setLanguage(lang)
     setStep('welcome')
   }, [])
-
-  const handleVoiceLanguageDetected = useCallback(
-    (lang: Language, index: number) => {
-      setLanguage(lang)
-      // الانتقال لشاشة الترحيب بعد التأكيد الصوتي
-      setTimeout(() => setStep('welcome'), 1800)
-    },
-    []
-  )
-
-  // ref يحمل resolve الخاص بآخر autoScroll promise
-  const scrollResolveRef = useRef<(() => void) | null>(null)
-
-  const handleAutoScroll = useCallback(
-    (targetIndex: number): Promise<void> => {
-      return new Promise((resolve) => {
-        scrollResolveRef.current = resolve
-        setVoiceSelectedLanguageIndex(targetIndex)
-        // نعطي الـ wheel وقتاً كافياً للتمرير (distance * 120ms + buffer)
-        // الحد الأقصى 12 لغة × 120ms = ~1.5 ثانية
-        setTimeout(() => {
-          resolve()
-          scrollResolveRef.current = null
-        }, 1600)
-      })
-    },
-    []
-  )
 
   const handleWelcomeComplete = useCallback(() => {
     setStep('menu')
@@ -129,20 +102,14 @@ export default function CaptenOrderApp() {
   const handleNewOrder = useCallback(() => {
     setCart([])
     setStep('language')
+    orderCompleteRef.current = false
   }, [])
+
+  // Show avatar for all steps except home
+  const showAvatar = step !== 'home' && !orderCompleteRef.current
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
-      {step === 'language' && (
-        <VoiceAssistant
-          onLanguageDetected={handleVoiceLanguageDetected}
-          onAutoScroll={handleAutoScroll}
-          onAudioStop={(stopAudio) => {
-            stopAudioRef.current = stopAudio
-          }}
-        />
-      )}
-
       <AnimatePresence mode="wait">
         {step === 'home' && (
           <motion.div
@@ -159,18 +126,10 @@ export default function CaptenOrderApp() {
           <motion.div
             key="language"
             {...PAGE_TRANSITIONS}
-            className="relative min-h-screen flex items-center justify-center"
+            className="relative min-h-screen"
           >
             <GridBackground />
-            <LanguageWheel
-              onSelect={handleLanguageSelect}
-              voiceControlIndex={voiceSelectedLanguageIndex}
-              onAudioStop={() => {
-                if (stopAudioRef.current) {
-                  stopAudioRef.current()
-                }
-              }}
-            />
+            <SelectLanguagePage onSelect={handleLanguageSelect} language={language} />
           </motion.div>
         )}
 
@@ -212,10 +171,30 @@ export default function CaptenOrderApp() {
               language={language}
               orderNumber={orderNumber}
               onNewOrder={handleNewOrder}
+              onOrderComplete={() => {
+                orderCompleteRef.current = true
+              }}
             />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Persistent Avatar - visible on all pages except home and after order complete */}
+      {showAvatar && (
+        <motion.div
+          className="fixed top-4 right-4 sm:top-6 sm:right-6 z-40"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+        >
+          <TalkingAvatar
+            amplitude={avatarAmplitude}
+            speaking={avatarSpeaking}
+            size={120}
+            src="/avatar.png"
+          />
+        </motion.div>
+      )}
     </div>
   )
 }

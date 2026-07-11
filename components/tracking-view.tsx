@@ -8,6 +8,7 @@ interface TrackingViewProps {
   language: Language
   orderNumber: string
   onNewOrder: () => void
+  onOrderComplete?: () => void
 }
 
 const TOTAL_SECONDS = 25 * 60
@@ -23,7 +24,7 @@ function getStatusIndex(secondsLeft: number): number {
   return 2
 }
 
-export function TrackingView({ language, orderNumber, onNewOrder }: TrackingViewProps) {
+export function TrackingView({ language, orderNumber, onNewOrder, onOrderComplete }: TrackingViewProps) {
   const dict = dictionary[language]
   const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS)
   const [isDone, setIsDone] = useState(false)
@@ -35,6 +36,7 @@ export function TrackingView({ language, orderNumber, onNewOrder }: TrackingView
         if (prev <= 1) {
           clearInterval(intervalRef.current!)
           setIsDone(true)
+          onOrderComplete?.()
           return 0
         }
         return prev - 1
@@ -43,7 +45,7 @@ export function TrackingView({ language, orderNumber, onNewOrder }: TrackingView
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [])
+  }, [onOrderComplete])
 
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60

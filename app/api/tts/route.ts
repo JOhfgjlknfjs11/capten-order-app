@@ -34,6 +34,13 @@ export async function POST(request: NextRequest) {
       language: LANGUAGE_CODES[(language as Language) ?? 'en'],
     })
 
+    if (!audio || audio.length === 0) {
+      return NextResponse.json(
+        { error: 'Failed to generate audio' },
+        { status: 500 }
+      )
+    }
+
     return new NextResponse(new Uint8Array(audio), {
       status: 200,
       headers: {
@@ -44,8 +51,11 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'TTS failed'
+    console.error('[v0] TTS Error:', message)
+    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'TTS failed' },
+      { error: message },
       { status: 500 }
     )
   }
