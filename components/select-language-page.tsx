@@ -53,6 +53,7 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
   const [showMicrophone, setShowMicrophone] = useState(false)
   const playbackHandleRef = useRef<any>(null)
   const hasPlayedGreetingRef = useRef(false)
+  const microphoneKeyRef = useRef(0) // Key to force remount/restart of microphone
 
   // Play greeting when component mounts
   useEffect(() => {
@@ -269,12 +270,13 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
         </motion.div>
       </div>
 
-      {/* Microphone Button */}
+      {/* Microphone Button - Auto-starts when greeting finishes */}
       {showMicrophone && (
         <MicrophoneButton
+          key={microphoneKeyRef.current}
           onLanguageDetected={handleLanguageDetected}
-          autoStart={false}
-          disabled={speaking}
+          autoStart={true}
+          disabled={speaking || selectedLang !== null}
         />
       )}
     </div>

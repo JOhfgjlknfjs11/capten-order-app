@@ -23,10 +23,10 @@ export function MicrophoneButton({
   const [detectedLanguage, setDetectedLanguage] = useState<Language | null>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Auto-start listening when component mounts if autoStart is true
+  // Auto-start listening when autoStart prop becomes true or component mounts
   useEffect(() => {
-    if (autoStart && !autoStarted && !disabled) {
-      setAutoStarted(true)
+    if (autoStart && !disabled) {
+      // Always start listening when autoStart is true, even if already auto-started
       startListening({ maxDuration: 10000 })
     }
 
@@ -35,7 +35,7 @@ export function MicrophoneButton({
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [autoStart, autoStarted, disabled, startListening])
+  }, [autoStart, disabled, startListening])
 
   // Detect language when transcript is available
   useEffect(() => {
