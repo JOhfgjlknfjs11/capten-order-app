@@ -23,9 +23,27 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
   const [speaking, setSpeaking] = useState(false)
   const [ready, setReady] = useState(false)
   const [showCaption, setShowCaption] = useState(false)
+  const [audioBlocked, setAudioBlocked] = useState(false)
 
   const playbackRef = useRef<AmplitudePlaybackHandle | null>(null)
+  const bufferPromiseRef = useRef<Promise<ArrayBuffer | null> | null>(null)
+  const removeUnlockRef = useRef<() => void>(() => {})
   const hasGreetedRef = useRef(false)
+
+  // تجهيز الصوت مسبقاً (مرة واحدة) حتى يكون التشغيل فورياً
+  const getBuffer = useCallback(() => {
+    if (!bufferPromiseRef.current) {
+      bufferPromiseRef.current = textToSpeech(HOME_GREETING, {
+        language: 'en',
+      }).catch(() => null)
+    }
+    return bufferPromiseRef.current
+  }, [])
+
+  const clearUnlock = useCallback(() => {
+    removeUnlockRef.current()
+    removeUnlockRef.current = () => {}
+  }, [])
 
   const stopSpeaking = useCallback(() => {
     playbackRef.current?.stop()
@@ -36,49 +54,91 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
   }, [])
 
   const greet = useCallback(async () => {
-    stopSpeaking()
+    playbackRef.current?.stop()
+    playbackRef.current = null
     setSpeaking(true)
     setShowCaption(true)
-    try {
-      const buffer = await textToSpeech(HOME_GREETING, { language: 'en' })
-      // لو الصوت متاح: شغّله مع تحليل مستوى الصوت.
-      // لو مش متاح (حصة مجانية انتهت مثلاً): حرّك الفم بشكل تقديري.
-      const handle = buffer
-        ? playWithAmplitude(buffer, setAmplitude)
-        : simulateSpeech(HOME_GREETING, setAmplitude)
-      playbackRef.current = handle
-      await handle.finished
-    } catch {
-      // في حال أي خطأ، شغّل الحركة التقديرية على الأقل
-      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
-      playbackRef.current = handle
-      await handle.finished
-    } finally {
+
+    const buffer = await getBuffer()
+
+    // لا يوجد صوت متاح إطلاقاً → حركة بصرية فقط
+    if (!buffer) {
+      const sim = simulateSpeech(HOME_GREETING, setAmplitude)
+      playbackRef.current = sim
+      await sim.finished
       setSpeaking(false)
       setAmplitude(0)
       setShowCaption(false)
       setReady(true)
+      return
     }
-  }, [stopSpeaking])
 
-  // تشغيل الترحيب مرة واحدة عند التحميل
+    // نمرّر نسخة حتى لا يُفصل (detach) الـ buffer الأصلي فيمكن إعادة استخدامه
+    const handle = playWithAmplitude(buffer.slice(0), setAmplitude)
+    playbackRef.current = handle
+
+    const started = await handle.started
+
+    // منع المتصفح التشغيل التلقائي → نعرض حركة بصرية ونشغّل الصوت عند أول لمسة
+    if (!started) {
+      handle.stop()
+      setAudioBlocked(true)
+
+      const sim = simulateSpeech(HOME_GREETING, setAmplitude)
+      playbackRef.current = sim
+
+      // أول تفاعل من المستخدم يشغّل الصوت الحقيقي متزامناً مع الحركة
+      const unlock = () => {
+        clearUnlock()
+        setAudioBlocked(false)
+        greet()
+      }
+      const opts: AddEventListenerOptions = { once: true }
+      window.addEventListener('pointerdown', unlock, opts)
+      window.addEventListener('keydown', unlock, opts)
+      removeUnlockRef.current = () => {
+        window.removeEventListener('pointerdown', unlock)
+        window.removeEventListener('keydown', unlock)
+      }
+
+      await sim.finished
+      setSpeaking(false)
+      setAmplitude(0)
+      setShowCaption(false)
+      setReady(true)
+      return
+    }
+
+    // الصوت يعمل → الحركة متزامنة معه تلقائياً عبر تحليل مستوى الصوت
+    setAudioBlocked(false)
+    await handle.finished
+    setSpeaking(false)
+    setAmplitude(0)
+    setShowCaption(false)
+    setReady(true)
+  }, [getBuffer, clearUnlock])
+
+  // تشغيل الترحيب مرة واحدة فور تحميل الصفحة
   useEffect(() => {
     if (hasGreetedRef.current) return
     hasGreetedRef.current = true
-    // تأخير بسيط للسماح بظهور الواجهة أولاً
+    // نبدأ التجهيز فوراً ثم نشغّل بعد لحظة قصيرة لظهور الواجهة
+    getBuffer()
     const t = setTimeout(() => {
       greet()
-    }, 700)
+    }, 300)
     return () => {
       clearTimeout(t)
-      stopSpeaking()
+      clearUnlock()
+      playbackRef.current?.stop()
     }
-  }, [greet, stopSpeaking])
+  }, [greet, getBuffer, clearUnlock])
 
   const handleStart = useCallback(() => {
+    clearUnlock()
     stopSpeaking()
     onStart()
-  }, [onStart, stopSpeaking])
+  }, [onStart, stopSpeaking, clearUnlock])
 
   const handleReplay = useCallback(() => {
     if (speaking) {
@@ -149,6 +209,37 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
             {HOME_GREETING}
           </p>
         </motion.div>
+      )}
+
+      {/* تلميح تشغيل الصوت عند منع التشغيل التلقائي */}
+      {audioBlocked && (
+        <motion.button
+          onClick={handleReplay}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 mt-4 flex items-center gap-2 rounded-full px-4 py-2"
+          style={{
+            background: 'oklch(0.42 0.09 210)',
+            boxShadow: '0 6px 18px oklch(0.42 0.09 210 / 0.35)',
+          }}
+        >
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 5 6 9H2v6h4l5 4z" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </svg>
+          <span className="text-sm font-medium text-white">
+            Tap anywhere to hear your host
+          </span>
+        </motion.button>
       )}
 
       {/* النص الترحيبي */}
