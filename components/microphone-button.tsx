@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, Loader2 } from 'lucide-react'
 import { useSpeech } from '@/hooks/use-speech'
-import { detectLanguageFromSpeech, getSpeechLanguageCode } from '@/lib/language-detection'
+import { detectLanguageFromSpeech, detectLanguageWithGrok, getSpeechLanguageCode } from '@/lib/language-detection'
 import { type Language } from '@/lib/dictionary'
 
 interface MicrophoneButtonProps {
@@ -40,11 +40,25 @@ export function MicrophoneButton({
   // Detect language when transcript is available
   useEffect(() => {
     if (transcript && transcript.trim().length > 0 && !isListening) {
-      const detected = detectLanguageFromSpeech(transcript)
-      if (detected) {
-        setDetectedLanguage(detected)
-        onLanguageDetected?.(detected)
+      // Try Grok first for better accuracy, fallback to local detection
+      const detectLanguage = async () => {
+        let detected: Language | null = null
+        
+        // Try Grok API first
+        detected = await detectLanguageWithGrok(transcript)
+        
+        // Fallback to local detection if Grok fails
+        if (!detected) {
+          detected = detectLanguageFromSpeech(transcript)
+        }
+        
+        if (detected) {
+          setDetectedLanguage(detected)
+          onLanguageDetected?.(detected)
+        }
       }
+      
+      detectLanguage()
     }
   }, [transcript, isListening, onLanguageDetected])
 
