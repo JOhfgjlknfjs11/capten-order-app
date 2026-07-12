@@ -56,10 +56,15 @@ export function AIChatbot({ language, onSendMessage, onReceiveMessage }: AIChatb
         setLoadingProgress(0)
         console.log('[v0] Loading Qwen model...')
 
-        const extractor = await pipeline('text2text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+        // Qwen1.5-Chat is a decoder-only (causal) model, so it must use the
+        // 'text-generation' pipeline, not 'text2text-generation'.
+        const extractor = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
           progress_callback: (progress: any) => {
-            console.log('[v0] Loading progress:', progress)
-            setLoadingProgress(Math.round((progress.progress / progress.total) * 100))
+            // transformers.js reports `progress` as a 0-100 percentage during
+            // the 'progress' status. Other statuses have no percentage.
+            if (progress?.status === 'progress' && typeof progress.progress === 'number') {
+              setLoadingProgress(Math.min(100, Math.round(progress.progress)))
+            }
           },
         })
 
@@ -232,7 +237,15 @@ export function AIChatbot({ language, onSendMessage, onReceiveMessage }: AIChatb
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === 'Enter' &&
+                    !e.nativeEvent.isComposing &&
+                    e.keyCode !== 229
+                  ) {
+                    handleSendMessage()
+                  }
+                }}
                 placeholder="اكتب رسالتك هنا..."
                 className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={isLoading}
