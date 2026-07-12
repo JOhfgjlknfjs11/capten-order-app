@@ -8,6 +8,7 @@ import { TalkingAvatar } from '@/components/talking-avatar'
 import { playWithAmplitude, simulateSpeech } from '@/lib/audio-playback'
 import { textToSpeech } from '@/lib/text-to-speech'
 import { GREETING_MESSAGES } from '@/lib/text-to-speech'
+import { translateAndSpeak } from '@/hooks/use-translate-and-speak'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface SelectLanguagePageProps {
@@ -65,10 +66,8 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       const greetingText = GREETING_MESSAGES[language]
 
       try {
-        const buffer = await textToSpeech(greetingText, {
-          language,
-          voiceId: 'wWWn96OtTHu1sn8SRGEr',
-        })
+        // Use translateAndSpeak to translate and speak in the selected language
+        const buffer = await translateAndSpeak(greetingText, language, 'wWWn96OtTHu1sn8SRGEr')
 
         if (buffer) {
           const handle = playWithAmplitude(buffer, setAmplitude)
@@ -113,14 +112,12 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       setSpeaking(true)
 
       const speakConfirmation = async () => {
-        // Speak the confirmation in the selected language
+        // Speak the confirmation in the selected language using translation
         const confirmationText = `You have selected ${dictionary[lang].langName}`
 
         try {
-          const buffer = await textToSpeech(confirmationText, {
-            language: lang,
-            voiceId: 'wWWn96OtTHu1sn8SRGEr',
-          })
+          // Use translateAndSpeak to translate and speak in the selected language
+          const buffer = await translateAndSpeak(confirmationText, lang, 'wWWn96OtTHu1sn8SRGEr')
 
           if (buffer) {
             const handle = playWithAmplitude(buffer, setAmplitude)
