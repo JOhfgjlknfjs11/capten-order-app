@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { TalkingAvatar } from '@/components/talking-avatar'
-import { textToSpeech } from '@/lib/text-to-speech'
 import {
-  playWithAmplitude,
   simulateSpeech,
   type AmplitudePlaybackHandle,
 } from '@/lib/audio-playback'
@@ -27,66 +25,132 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
 
   const playbackRef = useRef<AmplitudePlaybackHandle | null>(null)
   const hasGreetedRef = useRef(false)
+  const hasSpokenRef = useRef(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const stopSpeaking = useCallback(() => {
     playbackRef.current?.stop()
     playbackRef.current = null
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel()
+      } catch {}
+    }
+    utteranceRef.current = null
     setSpeaking(false)
     setAmplitude(0)
     setShowCaption(false)
   }, [])
 
-  const greet = useCallback(async () => {
-    stopSpeaking()
-    setSpeaking(true)
-    setShowCaption(true)
-    try {
-      // Use Web Speech API for built-in browser text-to-speech (no API keys needed)
-      const utterance = new SpeechSynthesisUtterance(HOME_GREETING)
-      utterance.lang = 'en-US'
-      utterance.rate = 0.95
-      utterance.pitch = 1
-      
-      // Animate amplitude while speaking
-      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
-      playbackRef.current = handle
-      
-      // Speak using Web Speech API
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(utterance)
-      
-      // Wait for speech to finish or timeout
-      await Promise.race([
-        new Promise<void>((resolve) => {
-          utterance.onend = () => resolve()
-        }),
-        new Promise<void>((resolve) => setTimeout(resolve, 8000)), // 8 second timeout
-      ])
-    } catch (error) {
-      console.error('[v0] Error in greeting:', error)
-      // Fallback: just animate without audio
-      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
-      playbackRef.current = handle
-      await handle.finished
-    } finally {
-      setSpeaking(false)
-      setAmplitude(0)
-      setShowCaption(false)
-      setReady(true)
-    }
-  }, [stopSpeaking])
+  // ينهي الترحيب: يوقف حركة الفم ويجعل الواجهة جاهزة
+  const finishGreeting = useCallback(() => {
+    playbackRef.current?.stop()
+    playbackRef.current = null
+    utteranceRef.current = null
+    setSpeaking(false)
+    setAmplitude(0)
+    setShowCaption(false)
+    setReady(true)
+  }, [])
 
-  // تشغيل الترحيب مرة واحدة عند التحميل
+  const greet = useCallback(() => {
+    const synth =
+      typeof window !== 'undefined' && 'speechSynthesis' in window
+        ? window.speechSynthesis
+        : null
+
+    // المتصفح لا يدعم النطق: نعرض الحركة فقط ثم نجعل الواجهة جاهزة
+    if (!synth) {
+      hasSpokenRef.current = true
+      setSpeaking(true)
+      setShowCaption(true)
+      playbackRef.current?.stop()
+      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
+      playbackRef.current = handle
+      handle.finished.then(finishGreeting)
+      return
+    }
+
+    // إلغاء أي كلام سابق قبل البدء من جديد
+    try {
+      synth.cancel()
+    } catch {}
+    playbackRef.current?.stop()
+    playbackRef.current = null
+
+    const utterance = new SpeechSynthesisUtterance(HOME_GREETING)
+    utterance.lang = 'en-US'
+    utterance.rate = 0.95
+    utterance.pitch = 1
+
+    // اختيار صوت إنجليزي إن وُجد لجودة نطق أفضل
+    const voices = synth.getVoices()
+    const enVoice = voices.find((v) => v.lang?.toLowerCase().startsWith('en'))
+    if (enVoice) utterance.voice = enVoice
+
+    utteranceRef.current = utterance
+
+    // نربط حركة الفم و"Speaking" ببدء الكلام الفعلي لا بمؤقّت أعمى
+    utterance.onstart = () => {
+      hasSpokenRef.current = true
+      setSpeaking(true)
+      setShowCaption(true)
+      playbackRef.current?.stop()
+      playbackRef.current = simulateSpeech(HOME_GREETING, setAmplitude)
+    }
+    utterance.onend = () => {
+      if (utteranceRef.current === utterance) finishGreeting()
+    }
+    utterance.onerror = () => {
+      if (utteranceRef.current === utterance) finishGreeting()
+    }
+
+    try {
+      synth.speak(utterance)
+    } catch {
+      finishGreeting()
+    }
+  }, [finishGreeting])
+
+  // تشغيل الترحيب عند التحميل + حل لتجاوز حظر التشغيل التلقائي بالمتصفح
   useEffect(() => {
     if (hasGreetedRef.current) return
     hasGreetedRef.current = true
-    // تأخير بسيط للسماح بظهور الواجهة أولاً
-    const t = setTimeout(() => {
-      greet()
-    }, 700)
+
+    const synth =
+      typeof window !== 'undefined' && 'speechSynthesis' in window
+        ? window.speechSynthesis
+        : null
+
+    let cancelled = false
+    const tryGreet = () => {
+      if (!cancelled) greet()
+    }
+
+    // بعض المتصفحات تحمّل قائمة الأصوات بشكل غير متزامن
+    if (synth && synth.getVoices().length === 0) {
+      synth.addEventListener?.('voiceschanged', tryGreet, { once: true })
+    }
+
+    // محاولة تلقائية بعد ظهور الواجهة (قد يحظرها المتصفح)
+    const t = setTimeout(tryGreet, 700)
+
+    // احتياطي: أول تفاعل من المستخدم يشغّل الترحيب فعليًا بالصوت
+    const onFirstInteract = () => {
+      if (!hasSpokenRef.current) greet()
+    }
+    window.addEventListener('pointerdown', onFirstInteract)
+    window.addEventListener('keydown', onFirstInteract)
+    window.addEventListener('touchstart', onFirstInteract)
+
     return () => {
+      cancelled = true
       clearTimeout(t)
+      window.removeEventListener('pointerdown', onFirstInteract)
+      window.removeEventListener('keydown', onFirstInteract)
+      window.removeEventListener('touchstart', onFirstInteract)
+      synth?.removeEventListener?.('voiceschanged', tryGreet)
       stopSpeaking()
     }
   }, [greet, stopSpeaking])
@@ -296,7 +360,11 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
         transition={{ delay: 1 }}
         className="relative z-10 mt-6 text-xs text-muted-foreground h-4"
       >
-        {speaking ? 'Speaking…' : ready ? 'Tap Start to choose your language' : ''}
+        {speaking
+          ? 'Speaking…'
+          : ready
+            ? 'Tap Start to choose your language'
+            : 'Tap anywhere to hear your host'}
       </motion.p>
     </div>
   )
