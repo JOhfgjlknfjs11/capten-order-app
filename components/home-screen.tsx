@@ -42,30 +42,20 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
     setSpeaking(true)
     setShowCaption(true)
     try {
-      // Use Web Speech API for built-in browser text-to-speech (no API keys needed)
-      const utterance = new SpeechSynthesisUtterance(HOME_GREETING)
-      utterance.lang = 'en-US'
-      utterance.rate = 0.95
-      utterance.pitch = 1
-      
-      // Animate amplitude while speaking
-      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
+      const buffer = await textToSpeech(HOME_GREETING, { language: 'en' })
+      // لو الصوت متاح: شغّله مع تحليل مستوى الصوت.
+      // لو مش متاح (حصة مجانية انتهت مثلاً): حرّك الفم بشكل تقديري.
+      const handle = buffer
+        ? playWithAmplitude(buffer, setAmplitude)
+        : simulateSpeech(HOME_GREETING, setAmplitude)
       playbackRef.current = handle
-      
-      // Speak using Web Speech API
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(utterance)
-      
-      // Wait for speech to finish or timeout
+      // Add timeout as fallback in case handle.finished hangs
       await Promise.race([
-        new Promise<void>((resolve) => {
-          utterance.onend = () => resolve()
-        }),
-        new Promise<void>((resolve) => setTimeout(resolve, 8000)), // 8 second timeout
+        handle.finished,
+        new Promise((resolve) => setTimeout(resolve, 8000)), // 8 second timeout
       ])
-    } catch (error) {
-      console.error('[v0] Error in greeting:', error)
-      // Fallback: just animate without audio
+    } catch {
+      // في حال أي خطأ، شغّل الحركة التقديرية على الأقل
       const handle = simulateSpeech(HOME_GREETING, setAmplitude)
       playbackRef.current = handle
       await handle.finished
