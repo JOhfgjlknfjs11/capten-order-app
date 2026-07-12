@@ -5,10 +5,8 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 import { TalkingAvatar } from '@/components/talking-avatar'
-import { playWithAmplitude, simulateSpeech } from '@/lib/audio-playback'
-import { textToSpeech } from '@/lib/text-to-speech'
+import { simulateSpeech } from '@/lib/audio-playback'
 import { GREETING_MESSAGES } from '@/lib/text-to-speech'
-import { translateAndSpeak } from '@/hooks/use-translate-and-speak'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface SelectLanguagePageProps {
@@ -66,19 +64,39 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       const greetingText = GREETING_MESSAGES[language]
 
       try {
-        // Use translateAndSpeak to translate and speak in the selected language
-        const buffer = await translateAndSpeak(greetingText, language, 'wWWn96OtTHu1sn8SRGEr')
-
-        if (buffer) {
-          const handle = playWithAmplitude(buffer, setAmplitude)
-          playbackHandleRef.current = handle
-          await handle.finished
-        } else {
-          // Fallback to simulated speech if audio generation fails
-          const handle = simulateSpeech(greetingText, setAmplitude)
-          playbackHandleRef.current = handle
-          await handle.finished
+        // Use Web Speech API for browser-native text-to-speech (no API keys needed)
+        const languageMap: Record<Language, string> = {
+          en: 'en-US',
+          ar: 'ar-SA',
+          ru: 'ru-RU',
+          fr: 'fr-FR',
+          de: 'de-DE',
+          it: 'it-IT',
+          es: 'es-ES',
+          zh: 'zh-CN',
+          ja: 'ja-JP',
+          pt: 'pt-BR',
+          tr: 'tr-TR',
+          ko: 'ko-KR',
         }
+
+        const utterance = new SpeechSynthesisUtterance(greetingText)
+        utterance.lang = languageMap[language] || 'en-US'
+        utterance.rate = 0.95
+        utterance.pitch = 1
+
+        // Animate amplitude while speaking
+        const handle = simulateSpeech(greetingText, setAmplitude)
+        playbackHandleRef.current = handle
+
+        // Speak using Web Speech API
+        window.speechSynthesis.cancel()
+        window.speechSynthesis.speak(utterance)
+
+        // Wait for speech to finish
+        await new Promise<void>((resolve) => {
+          utterance.onend = () => resolve()
+        })
       } catch (error) {
         console.error('[v0] Error playing greeting:', error)
       } finally {
@@ -112,22 +130,42 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       setSpeaking(true)
 
       const speakConfirmation = async () => {
-        // Speak the confirmation in the selected language using translation
+        // Speak the confirmation in the selected language
         const confirmationText = `You have selected ${dictionary[lang].langName}`
 
         try {
-          // Use translateAndSpeak to translate and speak in the selected language
-          const buffer = await translateAndSpeak(confirmationText, lang, 'wWWn96OtTHu1sn8SRGEr')
-
-          if (buffer) {
-            const handle = playWithAmplitude(buffer, setAmplitude)
-            playbackHandleRef.current = handle
-            await handle.finished
-          } else {
-            const handle = simulateSpeech(confirmationText, setAmplitude)
-            playbackHandleRef.current = handle
-            await handle.finished
+          const languageMap: Record<Language, string> = {
+            en: 'en-US',
+            ar: 'ar-SA',
+            ru: 'ru-RU',
+            fr: 'fr-FR',
+            de: 'de-DE',
+            it: 'it-IT',
+            es: 'es-ES',
+            zh: 'zh-CN',
+            ja: 'ja-JP',
+            pt: 'pt-BR',
+            tr: 'tr-TR',
+            ko: 'ko-KR',
           }
+
+          const utterance = new SpeechSynthesisUtterance(confirmationText)
+          utterance.lang = languageMap[lang] || 'en-US'
+          utterance.rate = 0.95
+          utterance.pitch = 1
+
+          // Animate amplitude while speaking
+          const handle = simulateSpeech(confirmationText, setAmplitude)
+          playbackHandleRef.current = handle
+
+          // Speak using Web Speech API
+          window.speechSynthesis.cancel()
+          window.speechSynthesis.speak(utterance)
+
+          // Wait for speech to finish
+          await new Promise<void>((resolve) => {
+            utterance.onend = () => resolve()
+          })
         } catch (error) {
           console.error('[v0] Error speaking confirmation:', error)
         } finally {

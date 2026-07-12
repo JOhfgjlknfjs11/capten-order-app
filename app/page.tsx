@@ -11,8 +11,9 @@ import { MenuView } from '@/components/menu-view'
 import { ReviewView } from '@/components/review-view'
 import { TrackingView } from '@/components/tracking-view'
 import { TalkingAvatar } from '@/components/talking-avatar'
+import { ChatView } from '@/components/chat-view'
 
-type Step = 'home' | 'language' | 'welcome' | 'menu' | 'review' | 'tracking'
+type Step = 'home' | 'language' | 'welcome' | 'menu' | 'review' | 'tracking' | 'chat'
 
 export interface CartItem {
   item: MenuItem
@@ -174,7 +175,14 @@ export default function CaptenOrderApp() {
               onOrderComplete={() => {
                 orderCompleteRef.current = true
               }}
+              onChat={() => setStep('chat')}
             />
+          </motion.div>
+        )}
+
+        {step === 'chat' && (
+          <motion.div key="chat" {...PAGE_TRANSITIONS}>
+            <ChatView language={language} />
           </motion.div>
         )}
       </AnimatePresence>
