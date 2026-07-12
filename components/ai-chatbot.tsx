@@ -124,28 +124,35 @@ export function AIChatbot({ language, onSendMessage, onReceiveMessage }: AIChatb
   }
 
   const speakMessage = async (text: string) => {
+    // Use browser's built-in speech synthesis
     try {
-      const response = await fetch('/api/translate-and-speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text,
-          language,
-          voiceId: 'wWWn96OtTHu1sn8SRGEr',
-        }),
-      })
-
-      if (response.ok) {
-        const audioBuffer = await response.arrayBuffer()
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const audioData = await audioContext.decodeAudioData(audioBuffer)
-        const source = audioContext.createBufferSource()
-        source.buffer = audioData
-        source.connect(audioContext.destination)
-        source.start(0)
+      const utterance = new SpeechSynthesisUtterance(text)
+      
+      // Set language based on selected language
+      const languageMap: Record<Language, string> = {
+        en: 'en-US',
+        ar: 'ar-SA',
+        ru: 'ru-RU',
+        fr: 'fr-FR',
+        de: 'de-DE',
+        it: 'it-IT',
+        es: 'es-ES',
+        zh: 'zh-CN',
+        ja: 'ja-JP',
+        pt: 'pt-BR',
+        tr: 'tr-TR',
+        ko: 'ko-KR',
       }
+      
+      utterance.lang = languageMap[language] || 'en-US'
+      utterance.rate = 1
+      utterance.pitch = 1
+      
+      window.speechSynthesis.cancel() // Cancel any ongoing speech
+      window.speechSynthesis.speak(utterance)
+      console.log('[v0] Speaking message in language:', language)
     } catch (error) {
-      console.error('[v0] Error playing audio:', error)
+      console.error('[v0] Error speaking message:', error)
     }
   }
 
