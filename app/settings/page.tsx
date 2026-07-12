@@ -12,7 +12,7 @@ export default function SettingsPage() {
     return ''
   })
   const [saved, setSaved] = useState(false)
-  const [testText, setTestText] = useState('Welcome to Capten Order, luxury dining at the Red Sea')
+  const [testText, setTestText] = useState('Welcome to Capten Order, luxury fine dining')
   const [isPlaying, setIsPlaying] = useState(false)
   const [testLanguage, setTestLanguage] = useState('en')
 

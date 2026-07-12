@@ -15,7 +15,7 @@ interface HomeScreenProps {
 
 // رسالة ترحيب إنجليزية دافئة يقولها الأفاتار عند فتح الصفحة الرئيسية
 const HOME_GREETING =
-  "Hello and welcome to Capten Order! I'm your personal dining host. Let's get you seated and ready to explore our finest Red Sea flavors. Tap Start when you're ready."
+  "Hello and welcome to Capten Order! I'm your personal dining host. Let's get you seated and ready to explore our finest flavors. Tap Start when you're ready."
 
 export function HomeScreen({ onStart }: HomeScreenProps) {
   const [amplitude, setAmplitude] = useState(0)
@@ -345,7 +345,7 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
           Capten Order
         </h1>
         <p className="font-body text-base text-muted-foreground leading-relaxed text-pretty">
-          Your personal dining host is here to guide you through a luxury Red Sea
+          Your personal dining host is here to guide you through a luxury dining
           experience.
         </p>
       </motion.div>
