@@ -10,9 +10,10 @@ export const FALLBACK_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'
 let client: ElevenLabsClient | null = null
 
 function getClient(): ElevenLabsClient {
-  const apiKey = process.env.ELEVENLABS_API_KEY
+  // يدعم كلا الاسمين: ELEVENLABS_API (المضبوط في المشروع) و ELEVENLABS_API_KEY
+  const apiKey = process.env.ELEVENLABS_API || process.env.ELEVENLABS_API_KEY
   if (!apiKey) {
-    throw new Error('ELEVENLABS_API_KEY is not set')
+    throw new Error('ELEVENLABS_API is not set')
   }
   if (!client) {
     client = new ElevenLabsClient({ apiKey })

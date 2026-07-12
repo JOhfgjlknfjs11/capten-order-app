@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, ChevronDown, Check, Globe, Settings } from 'lucide-react'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
-import { MENU_ITEMS, getItemName, getItemDescription, type Category, type MenuItem } from '@/lib/menu-data'
+import { MENU_ITEMS, type Category, type MenuItem } from '@/lib/menu-data'
 import { GeminiFoodCard } from '@/components/gemini-food-card'
 
 interface CartItem {

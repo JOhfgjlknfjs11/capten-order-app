@@ -16,9 +16,9 @@ const _inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Capten Order – Luxury Dining in Sharm El-Sheikh',
+  title: 'Capten Order – Luxury Fine Dining',
   description:
-    'Experience world-class cuisine at the Red Sea. Browse our exclusive menu of Red Sea seafood, premium steaks, traditional Egyptian dishes, and exotic cocktails.',
+    'Experience world-class cuisine. Browse our exclusive menu of fresh seafood, premium steaks, traditional favorites, and exotic cocktails.',
   generator: 'v0.app',
 }
 
