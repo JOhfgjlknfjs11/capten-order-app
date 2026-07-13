@@ -5,18 +5,8 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 import { TalkingAvatar } from '@/components/talking-avatar'
-<<<<<<< HEAD
-import { playWithAmplitude, simulateSpeech } from '@/lib/audio-playback'
-import { textToSpeech } from '@/lib/text-to-speech'
-=======
-import {
-  playWithAmplitude,
-  simulateSpeech,
-  type AmplitudePlaybackHandle,
-} from '@/lib/audio-playback'
->>>>>>> origin/main
+import { simulateSpeech } from '@/lib/audio-playback'
 import { GREETING_MESSAGES } from '@/lib/text-to-speech'
-import { translateAndSpeak } from '@/hooks/use-translate-and-speak'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface SelectLanguagePageProps {
@@ -201,107 +191,15 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       setShowMicrophone(true)
     }
     run()
-
-<<<<<<< HEAD
-      try {
-        // Use translateAndSpeak to translate and speak in the selected language
-        const buffer = await translateAndSpeak(greetingText, language, 'wWWn96OtTHu1sn8SRGEr')
-
-        if (buffer) {
-          const handle = playWithAmplitude(buffer, setAmplitude)
-          playbackHandleRef.current = handle
-          await handle.finished
-        } else {
-          // Fallback to simulated speech if audio generation fails
-          const handle = simulateSpeech(greetingText, setAmplitude)
-          playbackHandleRef.current = handle
-          await handle.finished
-        }
-      } catch (error) {
-        console.error('[v0] Error playing greeting:', error)
-      } finally {
-=======
-    return () => {
-      cancelled = true
-      stopPlayback()
-    }
-  }, [language, speak, stopPlayback])
-
-  const handleLanguageClick = useCallback(
-    (lang: Language) => {
-      // إيقاف أي صوت جارٍ
-      stopPlayback()
-
-      setSelectedLang(lang)
-      setSpeaking(true)
-
-      const run = async () => {
-        // نطق التأكيد بنفس اللغة المختارة
-        await speak(CONFIRM_MESSAGES[lang] || CONFIRM_MESSAGES.en, lang)
->>>>>>> origin/main
-        setSpeaking(false)
-        setAmplitude(0)
-        // المتابعة بعد انتهاء النطق
-        setTimeout(() => onSelect(lang), 300)
-      }
-      run()
-    },
-    [onSelect, speak, stopPlayback]
-  )
+  }, [language])
 
   const handleLanguageDetected = useCallback(
     (detectedLang: Language) => {
       if (selectedLang === null) {
-        handleLanguageClick(detectedLang)
+        onSelect(detectedLang)
       }
     },
-<<<<<<< HEAD
-    [selectedLang]
-  )
-
-  const handleLanguageClick = useCallback(
-    (lang: Language) => {
-      // Stop any currently playing audio
-      if (playbackHandleRef.current?.stop) {
-        playbackHandleRef.current.stop()
-      }
-
-      setSelectedLang(lang)
-      setSpeaking(true)
-
-      const speakConfirmation = async () => {
-        // Speak the confirmation in the selected language using translation
-        const confirmationText = `You have selected ${dictionary[lang].langName}`
-
-        try {
-          // Use translateAndSpeak to translate and speak in the selected language
-          const buffer = await translateAndSpeak(confirmationText, lang, 'wWWn96OtTHu1sn8SRGEr')
-
-          if (buffer) {
-            const handle = playWithAmplitude(buffer, setAmplitude)
-            playbackHandleRef.current = handle
-            await handle.finished
-          } else {
-            const handle = simulateSpeech(confirmationText, setAmplitude)
-            playbackHandleRef.current = handle
-            await handle.finished
-          }
-        } catch (error) {
-          console.error('[v0] Error speaking confirmation:', error)
-        } finally {
-          setSpeaking(false)
-          setAmplitude(0)
-          // Proceed with selection after a small delay
-          setTimeout(() => onSelect(lang), 300)
-        }
-      }
-
-      speakConfirmation()
-    },
-    [onSelect]
-=======
-    [selectedLang, handleLanguageClick]
->>>>>>> origin/main
+    [selectedLang, onSelect]
   )
 
   return (
