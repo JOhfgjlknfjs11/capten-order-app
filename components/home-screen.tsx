@@ -143,22 +143,30 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
       if (session !== greetSessionRef.current) return
 
       if (buffer) {
-        // شغّل الصوت الفعلي من ElevenLabs
+        // شغّل الصوت الفعلي من ElevenLabs + animation الفم
         const handle = playWithAmplitude(buffer, setAmplitude)
         playbackRef.current = handle
-
-        // انتظر انتهاء الصوت الفعلي مع timeout احتياطي بمدة القراءة التقديرية
-        await Promise.race([
-          handle.finished,
-          new Promise<void>((resolve) => setTimeout(resolve, estimatedDurationMs + 3000)),
-        ])
+        
+        // انتظر مع timeout محدد بناءً على طول الرسالة
+        // تقدير: ~12 حرف/ثانية + 2 ثانية
+        const estimatedMs = (HOME_GREETING.length / 12) * 1000 + 2000
+        
+        if (handle?.finished) {
+          await Promise.race([
+            handle.finished,
+            new Promise<void>((resolve) => setTimeout(resolve, estimatedMs)),
+          ])
+        } else {
+          // handle غير معرّف - انتظر timeout فقط
+          await new Promise<void>((resolve) => setTimeout(resolve, estimatedMs))
+        }
       } else {
-        // فشل جلب الصوت: محاكاة بالنص الصحيح لمدة كافية
+        // فشل جلب الصوت: محاكاة بالنص الصحيح
         const handle = simulateSpeech(HOME_GREETING, setAmplitude)
         playbackRef.current = handle
         await handle.finished
       }
-    } catch {
+    } catch (err) {
       if (session !== greetSessionRef.current) return
       // خطأ: محاكاة بالنص الصحيح
       const handle = simulateSpeech(HOME_GREETING, setAmplitude)

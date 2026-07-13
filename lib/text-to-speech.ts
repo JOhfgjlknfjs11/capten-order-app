@@ -68,8 +68,19 @@ export async function playAudio(audioBuffer: ArrayBuffer, onSourceReady?: (sourc
         ctx.close()
         resolve()
       }
-      setTimeout(() => resolve(), (decoded.duration + 2) * 1000)
-      source.start(0)
+      // timeout احتياطي: مدة الصوت + 2 ثانية
+      const timeoutId = setTimeout(() => {
+        ctx.close()
+        resolve()
+      }, (decoded.duration + 2) * 1000)
+      
+      // حاول تشغيل الصوت - قد يفشل بسبب autoplay policy
+      try {
+        source.start(0)
+      } catch (err) {
+        console.log('[v0] playAudio: source.start() failed (autoplay blocked?), relying on timeout')
+        // لا تحزن - timeout سيُكمل Promise
+      }
     })
   } catch {
     // fallback: HTML Audio element
