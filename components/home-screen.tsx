@@ -8,6 +8,7 @@ import {
   simulateSpeech,
   type AmplitudePlaybackHandle,
 } from '@/lib/audio-playback'
+import { textToSpeech } from '@/lib/text-to-speech'
 
 interface HomeScreenProps {
   onStart: () => void
@@ -119,48 +120,57 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
     }
   }, [finishGreeting])
 
-  // الترحيب: يستخدم صوت ElevenLabs الاحترافي أولًا، وعند الفشل صوت المتصفح
+  // الترحيب: يستخدم صوت ElevenLabs الاحترافي أولًا، وعند الفشل محاكاة بالنص الصحيح
   const greet = useCallback(async () => {
     const session = ++greetSessionRef.current
 
     // إيقاف أي صوت/حركة سابقة
     playbackRef.current?.stop()
     playbackRef.current = null
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel()
-      } catch {}
-    }
     utteranceRef.current = null
 
     // إظهار الحالة فورًا أثناء جلب الصوت
     hasSpokenRef.current = true
     setSpeaking(true)
     setShowCaption(true)
+
+    // مدة قراءة الرسالة تقديرياً (حرف/12ms) - تُستخدم كـ fallback timeout
+    const estimatedDurationMs = Math.max(6000, (HOME_GREETING.length / 12) * 1000)
+
     try {
       const buffer = await textToSpeech(HOME_GREETING, { language: 'en' })
-      // لو الصوت متاح: شغّله مع تحليل مستوى الصوت.
-      // لو مش متاح (حصة مجانية انتهت مثلاً): حرّك الفم بشكل تقديري.
-      const handle = buffer
-        ? playWithAmplitude(buffer, setAmplitude)
-        : simulateSpeech(HOME_GREETING, setAmplitude)
-      playbackRef.current = handle
-      // Add timeout as fallback in case handle.finished hangs
-      await Promise.race([
-        handle.finished,
-        new Promise((resolve) => setTimeout(resolve, 8000)), // 8 second timeout
-      ])
+
+      if (session !== greetSessionRef.current) return
+
+      if (buffer) {
+        // شغّل الصوت الفعلي من ElevenLabs
+        const handle = playWithAmplitude(buffer, setAmplitude)
+        playbackRef.current = handle
+
+        // انتظر انتهاء الصوت الفعلي مع timeout احتياطي بمدة القراءة التقديرية
+        await Promise.race([
+          handle.finished,
+          new Promise<void>((resolve) => setTimeout(resolve, estimatedDurationMs + 3000)),
+        ])
+      } else {
+        // فشل جلب الصوت: محاكاة بالنص الصحيح لمدة كافية
+        const handle = simulateSpeech(HOME_GREETING, setAmplitude)
+        playbackRef.current = handle
+        await handle.finished
+      }
     } catch {
-      // في حال أي خطأ، شغّل الحركة التقديرية على الأقل
+      if (session !== greetSessionRef.current) return
+      // خطأ: محاكاة بالنص الصحيح
       const handle = simulateSpeech(HOME_GREETING, setAmplitude)
       playbackRef.current = handle
       await handle.finished
-    } finally {
-      setSpeaking(false)
-      setAmplitude(0)
-      setShowCaption(false)
-      setReady(true)
     }
+
+    if (session !== greetSessionRef.current) return
+    setSpeaking(false)
+    setAmplitude(0)
+    setShowCaption(false)
+    setReady(true)
   }, [stopSpeaking])
 
   // تشغيل الترحيب عند التحميل + حل لتجاوز حظر التشغيل التلقائي بالمتصفح
@@ -216,14 +226,10 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
     onStart()
   }, [onStart, stopSpeaking])
 
-  // Start countdown when greeting finishes (ready becomes true)
+  // بدء العداد فور انتهاء الصوت مباشرة
   useEffect(() => {
     if (ready && countdown === null) {
-      // Wait 1 second after ready to ensure audio fully finishes playing
-      const timer = setTimeout(() => {
-        setCountdown(3)
-      }, 1000)
-      return () => clearTimeout(timer)
+      setCountdown(3)
     }
   }, [ready, countdown])
 
@@ -235,10 +241,7 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
           if (prev === null) return null
           const next = prev - 1
           if (next === 0) {
-            // Auto-click Start button when countdown reaches 0
-            setTimeout(() => {
-              handleStart()
-            }, 300)
+            handleStart()
           }
           return next > 0 ? next : null
         })
