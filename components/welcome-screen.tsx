@@ -208,10 +208,10 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
           <span className="text-3xl">{dict.flag}</span>
         </motion.div>
 
-        {/* Loading dots - show countdown only after audio finishes */}
+        {/* Loading dots */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: speaking ? 0 : 1 }}
+          animate={{ opacity: 1 }}
           transition={{ delay: 2 }}
           className="mt-8 flex justify-center gap-1.5"
         >
