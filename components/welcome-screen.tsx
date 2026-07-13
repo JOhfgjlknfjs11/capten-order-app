@@ -16,41 +16,57 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
   const dict = dictionary[language]
   const [amplitude, setAmplitude] = useState(0)
   const [speaking, setSpeaking] = useState(false)
+  const [countdown, setCountdown] = useState<number | null>(null)
   const audioHandleRef = useRef<{ stop: () => void } | null>(null)
   const hasPlayedRef = useRef(false)
 
   // Welcome messages in multiple languages
   const WELCOME_MESSAGES: Record<Language, string> = {
-    en: "Welcome to our restaurant! We're excited to serve you today.",
-    ar: 'أهلاً وسهلاً بك في مطعمنا! نحن متحمسون لخدمتك اليوم.',
-    ru: 'Добро пожаловать в наш ресторан! Мы рады вас видеть.',
-    fr: 'Bienvenue dans notre restaurant! Nous sommes ravis de vous servir.',
-    de: 'Willkommen in unserem Restaurant! Wir freuen uns, Sie zu bedienen.',
-    it: 'Benvenuto nel nostro ristorante! Siamo entusiasti di servirti.',
-    es: '¡Bienvenido a nuestro restaurante! Estamos emocionados de servirle.',
-    zh: '欢迎来到我们的餐厅! 我们很高兴为您服务。',
-    ja: 'レストランへようこそ！本日はお客様にお役立てします。',
-    pt: 'Bem-vindo ao nosso restaurante! Estamos animados em servi-lo.',
-    tr: 'Restoranımıza hoş geldiniz! Sizi hizmet etmekten heyecan duyuyoruz.',
-    ko: '저희 레스토랑에 오신 것을 환영합니다! 오늘 봉사하게 되어 기쁩니다.',
+    en: "Hello and welcome to Capten Order! I'm your personal dining host. Let's get you seated and ready to explore our finest flavors. Tap Start when you're ready.",
+    ar: 'أهلاً وسهلاً بك في كبتن أوردر! أنا مضيفك الشخصي. دعنا نجهزك للجلوس واستكشاف أفضل نكهاتنا. اضغط على ابدأ عندما تكون مستعداً.',
+    ru: 'Добро пожаловать в Capten Order! Я ваш личный хост. Давайте подготовим вас к лучшему опыту. Нажмите Начать, когда вы готовы.',
+    fr: 'Bienvenue chez Capten Order! Je suis votre hôte personnel. Préparons-vous pour explorer nos meilleures saveurs. Cliquez sur Démarrer quand vous êtes prêt.',
+    de: 'Willkommen bei Capten Order! Ich bin Ihr persönlicher Host. Lassen Sie uns Sie vorbereiten. Klicken Sie auf Start, wenn Sie bereit sind.',
+    it: 'Benvenuto a Capten Order! Sono il tuo host personale. Preparati per un&apos;esperienza straordinaria. Fai clic su Inizia quando sei pronto.',
+    es: '¡Bienvenido a Capten Order! Soy tu anfitrión personal. Prepárate para explorar nuestros mejores sabores. Haz clic en Comenzar cuando estés listo.',
+    zh: '欢迎来到Capten Order! 我是你的个人主持人。让我们准备好享受最好的风味。准备好时点击开始。',
+    ja: 'Capten Orderへようこそ！私はあなたの個人的なホストです。最高の体験のために準備しましょう。準備ができたら開始をクリックしてください。',
+    pt: 'Bem-vindo ao Capten Order! Sou seu anfitrião pessoal. Vamos preparar você para os melhores sabores. Clique em Iniciar quando estiver pronto.',
+    tr: 'Capten Order&apos;a hoş geldiniz! Ben sizin kişisel misafir editörünüzüm. En iyi tatları keşfetmeye hazırlanalım. Hazır olduğunuzda Başla&apos;yı tıklayın.',
+    ko: 'Capten Order에 오신 것을 환영합니다! 저는 당신의 개인 호스트입니다. 최고의 경험을 준비합시다. 준비가 되면 시작을 클릭하세요.',
   }
 
+  // العداد التنازلي
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return
+    
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1)
+    }, 1000)
+    
+    return () => clearTimeout(timer)
+  }, [countdown])
+
+  // النقر التلقائي عند انتهاء العداد
+  useEffect(() => {
+    if (countdown === 0) {
+      onComplete()
+    }
+  }, [countdown, onComplete])
+
+  // تشغيل الصوت والعداد
   useEffect(() => {
     if (hasPlayedRef.current) return
     hasPlayedRef.current = true
 
     const run = async () => {
       try {
-        console.log('[v0] Starting welcome audio for language:', language)
-        
         // Play welcome message with avatar animation
         const welcomeText = WELCOME_MESSAGES[language]
         const audioBuffer = await textToSpeech(welcomeText, {
           language,
           voiceId: 'hpp4J3VqNfWAUOO0d1Us',
         })
-
-        console.log('[v0] Got audio buffer, playing now...')
 
         if (audioBuffer) {
           setSpeaking(true)
@@ -59,22 +75,21 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
           })
           audioHandleRef.current = handle
 
-          // Wait for audio to finish
-          await handle.finished
-          console.log('[v0] Audio finished playing')
+          // انتظر الصوت مع timeout fallback (أقصى 10 ثواني)
+          await Promise.race([
+            handle.finished,
+            new Promise(resolve => setTimeout(resolve, 10000))
+          ])
           setSpeaking(false)
           
-          // Small delay after audio completes
-          await new Promise(resolve => setTimeout(resolve, 500))
+          // بدء العداد التنازلي بعد انتهاء الصوت مباشرة (3 ثواني)
+          setCountdown(3)
         }
       } catch (error) {
         console.error('[v0] Welcome audio error:', error)
-        // Still proceed to next step even if audio fails
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Still start countdown even if audio fails
+        setCountdown(3)
       }
-
-      console.log('[v0] Completing welcome screen')
-      onComplete()
     }
 
     run()
@@ -82,7 +97,7 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
     return () => {
       audioHandleRef.current?.stop()
     }
-  }, [language, onComplete])
+  }, [language])
 
   return (
     <div className="min-h-screen flex items-center justify-center overflow-hidden">
@@ -207,28 +222,42 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
           <span className="text-3xl">{dict.flag}</span>
         </motion.div>
 
-        {/* Loading dots */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="mt-8 flex justify-center gap-1.5"
-        >
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: 'oklch(0.42 0.09 210)' }}
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.2,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </motion.div>
+        {/* Countdown Timer */}
+        {countdown !== null && countdown > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="mt-8 text-3xl font-bold text-foreground"
+          >
+            {countdown}
+          </motion.div>
+        )}
+        
+        {/* Loading dots (before countdown) */}
+        {countdown === null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2 }}
+            className="mt-8 flex justify-center gap-1.5"
+          >
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: 'oklch(0.42 0.09 210)' }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: 'easeInOut',
+                }}
+              />
+            ))}
+          </motion.div>
+        )}
         </div>
       </div>
     </div>
