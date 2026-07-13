@@ -59,42 +59,53 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
     if (hasPlayedRef.current) return
     hasPlayedRef.current = true
 
+    let cancelled = false
+
     const run = async () => {
       try {
-        // Play welcome message with avatar animation
         const welcomeText = WELCOME_MESSAGES[language]
+
+        // جلب الصوت من ElevenLabs
         const audioBuffer = await textToSpeech(welcomeText, {
           language,
           voiceId: 'hpp4J3VqNfWAUOO0d1Us',
         })
 
+        if (cancelled) return
+
         if (audioBuffer) {
           setSpeaking(true)
+
+          // playWithAmplitude تُحرّك الفم وتنتظر انتهاء الصوت الفعلي
           const handle = playWithAmplitude(audioBuffer, (level) => {
             setAmplitude(level)
           })
-          audioHandleRef.current = handle
+          audioHandleRef.current = handle as unknown as { stop: () => void }
 
-          // انتظر الصوت مع timeout fallback (أقصى 10 ثواني)
-          await Promise.race([
-            handle.finished,
-            new Promise(resolve => setTimeout(resolve, 10000))
-          ])
-          setSpeaking(false)
-          
-          // بدء العداد التنازلي بعد انتهاء الصوت مباشرة (3 ثواني)
-          setCountdown(3)
+          // انتظر انتهاء الصوت الحقيقي
+          await handle.finished
+        } else {
+          // فشل جلب الصوت - انتظر بقدر وقت قراءة الرسالة تقريباً
+          const readingTimeMs = (WELCOME_MESSAGES[language].length / 12) * 1000
+          await new Promise(resolve => setTimeout(resolve, Math.min(readingTimeMs, 8000)))
         }
-      } catch (error) {
-        console.error('[v0] Welcome audio error:', error)
-        // Still start countdown even if audio fails
-        setCountdown(3)
+      } catch {
+        // عند أي خطأ - انتظر بقدر وقت قراءة الرسالة
+        const readingTimeMs = (WELCOME_MESSAGES[language].length / 12) * 1000
+        await new Promise(resolve => setTimeout(resolve, Math.min(readingTimeMs, 8000)))
       }
+
+      if (cancelled) return
+      setSpeaking(false)
+      setAmplitude(0)
+      // بدء العداد التنازلي 3 ثواني فور انتهاء الصوت
+      setCountdown(3)
     }
 
     run()
-    
+
     return () => {
+      cancelled = true
       audioHandleRef.current?.stop()
     }
   }, [language])

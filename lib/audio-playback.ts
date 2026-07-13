@@ -146,62 +146,52 @@ export function playWithAmplitude(
       source.start(0)
       rafId = requestAnimationFrame(tick)
     } catch {
-      // fallback بدون تحليل: مجرد تشغيل عبر HTMLAudio
+      // fallback: تشغيل عبر HTMLAudioElement مع انتظار حقيقي لـ onended
       try {
         const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
-        audio.onended = () => {
-          URL.revokeObjectURL(url)
-          stop()
-        }
-        audio.onerror = () => {
-          URL.revokeObjectURL(url)
-          stop()
-        }
-        // نبض وهمي بسيط للفم أثناء التشغيل
+
         const fakeTick = () => {
           if (stopped) return
           onAmplitude(0.35 + Math.random() * 0.4)
           rafId = requestAnimationFrame(fakeTick)
         }
-        audio.play().then(() => {
-          rafId = requestAnimationFrame(fakeTick)
-          
-          // حساب مدة الصوت بدقة
-          const checkDuration = () => {
-            if (audio.duration && audio.duration > 0) {
-              // عندما نعرف المدة، حدد timeout للإيقاف
-              setTimeout(() => {
-                if (!stopped) {
-                  stopped = true
-                  cleanup()
-                }
-              }, (audio.duration * 1000) + 500)
-            } else {
-              // حاول مرة أخرى بعد قليل
-              setTimeout(checkDuration, 100)
-            }
-          }
-          checkDuration()
-          
-          // fallback: أقصى 15 ثانية
-          setTimeout(() => {
-            if (!stopped) {
-              stopped = true
-              cleanup()
-            }
-          }, 15000)
-        }).catch(() => {
-          // إذا فشل التشغيل، استخدم محاكاة
+
+        const finish = () => {
+          URL.revokeObjectURL(url)
           if (!stopped) {
-            stopped = false
-            const handle = simulateSpeech(audioBuffer.toString(), onAmplitude)
-            handle.finished.then(() => {
-              if (!stopped) {
-                stopped = true
-                cleanup()
-              }
+            stopped = true
+            cleanup()
+          }
+        }
+
+        audio.onended = finish
+        audio.onerror = finish
+
+        audio.play().then(() => {
+          // ابدأ تحريك الفم
+          rafId = requestAnimationFrame(fakeTick)
+          // timeout احتياطي: مدة الصوت + ثانية واحدة
+          audio.addEventListener('loadedmetadata', () => {
+            const safeDuration = (audio.duration > 0 ? audio.duration : 30) * 1000 + 1000
+            setTimeout(finish, safeDuration)
+          }, { once: true })
+          // إذا لم تُحمَّل البيانات في 500ms، استخدم مدة محسوبة من حجم الملف
+          setTimeout(() => {
+            if (!stopped && !(audio.duration > 0)) {
+              // تقدير: ~16kB في الثانية للـ MP3
+              const estimatedMs = (audioBuffer.byteLength / 16000) * 1000 + 1000
+              setTimeout(finish, estimatedMs)
+            }
+          }, 500)
+        }).catch(() => {
+          // autoplay محظور - استخدم simulateSpeech لمحاكاة وقت القراءة
+          URL.revokeObjectURL(url)
+          if (!stopped) {
+            const sim = simulateSpeech(String(audioBuffer.byteLength), onAmplitude)
+            sim.finished.then(() => {
+              if (!stopped) { stopped = true; cleanup() }
             })
           }
         })
