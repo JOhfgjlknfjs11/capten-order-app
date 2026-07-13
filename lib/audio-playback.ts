@@ -186,10 +186,13 @@ export function playWithAmplitude(
             }
           }, 500)
         }).catch(() => {
-          // autoplay محظور - استخدم simulateSpeech لمحاكاة وقت القراءة
+          // autoplay محظور - حاكِ وقت القراءة بناءً على حجم الملف الصوتي
+          // تقدير: ~16 كيلوبايت في الثانية للـ MP3، مع حد أدنى 5 ثواني
           URL.revokeObjectURL(url)
           if (!stopped) {
-            const sim = simulateSpeech(String(audioBuffer.byteLength), onAmplitude)
+            const estimatedSeconds = Math.max(5, audioBuffer.byteLength / 16000)
+            const fakeText = 'x'.repeat(Math.round(estimatedSeconds * 12))
+            const sim = simulateSpeech(fakeText, onAmplitude)
             sim.finished.then(() => {
               if (!stopped) { stopped = true; cleanup() }
             })
