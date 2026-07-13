@@ -8,6 +8,7 @@ import {
   simulateSpeech,
   type AmplitudePlaybackHandle,
 } from '@/lib/audio-playback'
+import { textToSpeech } from '@/lib/text-to-speech'
 
 interface HomeScreenProps {
   onStart: () => void
