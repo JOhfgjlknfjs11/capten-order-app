@@ -103,45 +103,13 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
   // نطق نص عبر صوت المتصفح (احتياطي) — يُرجع Promise ينتهي مع انتهاء الكلام
   const speakWithBrowser = useCallback((text: string, lang: Language) => {
     return new Promise<void>((resolve) => {
-      const synth =
-        typeof window !== 'undefined' && 'speechSynthesis' in window
-          ? window.speechSynthesis
-          : null
-
-      // بدون دعم النطق: حركة فم تقديرية فقط
-      if (!synth) {
-        const handle = simulateSpeech(text, setAmplitude)
-        playbackHandleRef.current = handle
-        handle.finished.then(() => resolve())
-        return
-      }
-
-      try {
-        synth.cancel()
-      } catch {}
-
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = BROWSER_LANG[lang] || 'en-US'
-      utterance.rate = 0.95
-      utterance.pitch = 1
-      const voices = synth.getVoices()
-      const match = voices.find((v) =>
-        v.lang?.toLowerCase().startsWith((BROWSER_LANG[lang] || 'en').slice(0, 2))
-      )
-      if (match) utterance.voice = match
-
-      // حركة الفم أثناء الكلام
+      // حركة فم تقديرية فقط (بدون synth عام)
       const handle = simulateSpeech(text, setAmplitude)
       playbackHandleRef.current = handle
-
-      utterance.onend = () => resolve()
-      utterance.onerror = () => resolve()
-
-      try {
-        synth.speak(utterance)
-      } catch {
+      handle.finished.then(() => {
+        console.log('[v0] Browser speech simulation finished')
         resolve()
-      }
+      })
     })
   }, [])
 
@@ -153,20 +121,31 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       playbackHandleRef.current = null
 
       try {
+        console.log('[v0] Speaking:', text.slice(0, 50) + '...', 'lang:', lang)
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, language: lang }),
         })
-        if (!res.ok) throw new Error(`TTS failed: ${res.status}`)
+        if (!res.ok) {
+          console.error('[v0] TTS API returned:', res.status)
+          throw new Error(`TTS failed: ${res.status}`)
+        }
 
         const buffer = await res.arrayBuffer()
+        console.log('[v0] Got audio buffer:', buffer.byteLength, 'bytes')
+        
         // تم بدء جلسة أحدث أثناء الجلب → تجاهل
-        if (session !== sessionRef.current) return
+        if (session !== sessionRef.current) {
+          console.log('[v0] Session changed, ignoring')
+          return
+        }
 
         const handle = playWithAmplitude(buffer, setAmplitude)
         playbackHandleRef.current = handle
+        console.log('[v0] Waiting for audio to finish...')
         await handle.finished
+        console.log('[v0] Audio finished')
       } catch (error) {
         console.error('[v0] ElevenLabs voice failed, using browser voice:', error)
         if (session !== sessionRef.current) return
@@ -184,13 +163,26 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
     let cancelled = false
     const run = async () => {
       setSpeaking(true)
-      await speak(GREETING_MESSAGES[language], language)
+      try {
+        // أضف timeout: أقصى 6 ثواني للصوت الترحيبي
+        await Promise.race([
+          speak(GREETING_MESSAGES[language], language),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('TTS timeout')), 6000))
+        ])
+      } catch (error) {
+        // خطأ أو timeout - لا تهمنا، ننتقل إلى الخطوة التالية
+      }
       if (cancelled) return
       setSpeaking(false)
       setAmplitude(0)
       setShowMicrophone(true)
     }
     run()
+    
+    return () => {
+      cancelled = true
+      stopPlayback()
+    }
   }, [language])
 
   const handleLanguageClick = useCallback(
@@ -237,9 +229,9 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
 
       {/* Main content container */}
       <div className="relative z-10 w-full max-w-2xl">
-        {/* Avatar Section */}
+        {/* Avatar Section - positioned above content */}
         <motion.div
-          className="flex justify-center mb-8 sm:mb-12"
+          className="flex justify-center mb-8 sm:mb-12 relative z-50"
           animate={{ scale: speaking ? 1.05 : 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >

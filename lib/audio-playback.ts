@@ -88,6 +88,7 @@ export function playWithAmplitude(
 
   const run = async () => {
     try {
+      console.log('[v0] playWithAmplitude: Starting Web Audio decoding, buffer:', audioBuffer.byteLength)
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       ctx = new AudioCtx()
       if (ctx.state === 'suspended') {
@@ -95,6 +96,7 @@ export function playWithAmplitude(
       }
 
       const decoded = await ctx.decodeAudioData(audioBuffer.slice(0))
+      console.log('[v0] playWithAmplitude: Decoded audio, duration:', decoded.duration)
       if (stopped) {
         cleanup()
         return
@@ -145,33 +147,63 @@ export function playWithAmplitude(
 
       source.start(0)
       rafId = requestAnimationFrame(tick)
-    } catch {
-      // fallback بدون تحليل: مجرد تشغيل عبر HTMLAudio
-      try {
-        const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
-        const url = URL.createObjectURL(blob)
-        const audio = new Audio(url)
-        audio.onended = () => {
-          URL.revokeObjectURL(url)
+      } catch (error) {
+        console.log('[v0] Web Audio decode failed, using HTMLAudioElement fallback:', error)
+        // fallback بدون تحليل: مجرد تشغيل عبر HTMLAudio
+        try {
+          const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' })
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          
+          let audioEnded = false
+          
+          audio.onended = () => {
+            if (!audioEnded && !stopped) {
+              audioEnded = true
+              URL.revokeObjectURL(url)
+              stop()
+            }
+          }
+          audio.onerror = () => {
+            if (!audioEnded && !stopped) {
+              audioEnded = true
+              URL.revokeObjectURL(url)
+              stop()
+            }
+          }
+          
+          // نبض وهمي بسيط للفم أثناء التشغيل
+          const fakeTick = () => {
+            if (stopped) return
+            onAmplitude(0.35 + Math.random() * 0.4)
+            rafId = requestAnimationFrame(fakeTick)
+          }
+          
+          audio.play().then(() => {
+            rafId = requestAnimationFrame(fakeTick)
+            
+            // timeout as backup in case onended doesn't fire
+            const duration = audio.duration * 1000
+            setTimeout(() => {
+              if (!audioEnded && !stopped) {
+                audioEnded = true
+                URL.revokeObjectURL(url)
+                stop()
+              }
+            }, duration + 200)
+          }).catch((err) => {
+            console.error('[v0] Audio play failed:', err)
+            if (!audioEnded && !stopped) {
+              audioEnded = true
+              URL.revokeObjectURL(url)
+              stop()
+            }
+          })
+        } catch (err) {
+          console.error('[v0] Fallback audio failed:', err)
           stop()
         }
-        audio.onerror = () => {
-          URL.revokeObjectURL(url)
-          stop()
-        }
-        // نبض وهمي بسيط للفم أثناء التشغيل
-        const fakeTick = () => {
-          if (stopped) return
-          onAmplitude(0.35 + Math.random() * 0.4)
-          rafId = requestAnimationFrame(fakeTick)
-        }
-        audio.play().then(() => {
-          rafId = requestAnimationFrame(fakeTick)
-        }).catch(() => stop())
-      } catch {
-        stop()
       }
-    }
   }
 
   run()
