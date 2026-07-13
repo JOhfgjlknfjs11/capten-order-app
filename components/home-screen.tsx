@@ -137,6 +137,34 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
     hasSpokenRef.current = true
     setSpeaking(true)
     setShowCaption(true)
+<<<<<<< HEAD
+    try {
+      const buffer = await textToSpeech(HOME_GREETING, { language: 'en' })
+      // لو الصوت متاح: شغّله مع تحليل مستوى الصوت.
+      // لو مش متاح (حصة مجانية انتهت مثلاً): حرّك الفم بشكل تقديري.
+      const handle = buffer
+        ? playWithAmplitude(buffer, setAmplitude)
+        : simulateSpeech(HOME_GREETING, setAmplitude)
+      playbackRef.current = handle
+      // Add timeout as fallback in case handle.finished hangs
+      await Promise.race([
+        handle.finished,
+        new Promise((resolve) => setTimeout(resolve, 8000)), // 8 second timeout
+      ])
+    } catch {
+      // في حال أي خطأ، شغّل الحركة التقديرية على الأقل
+      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
+      playbackRef.current = handle
+      await handle.finished
+    } finally {
+      setSpeaking(false)
+      setAmplitude(0)
+      setShowCaption(false)
+      setReady(true)
+    }
+  }, [stopSpeaking])
+=======
+>>>>>>> origin/main
 
     const run = async () => {
       try {
