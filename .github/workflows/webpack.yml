@@ -26,4 +26,4 @@ jobs:
       run: |
         npm install
         npm install -g webpack-cli
-        npx webpack
+      npx webpack --entry ./index.js --mode production
