@@ -113,7 +113,7 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
     })
   }, [])
 
-  // نطق نص عبر ElevenLabs بنفس اللغة، مع رجوع لصوت المتصفح عند الفشل
+  // نطق نص عبر ElevenLabs بنفس اللغة (بدون fallback لتجنب تغير الصوت)
   const speak = useCallback(
     async (text: string, lang: Language) => {
       const session = ++sessionRef.current
@@ -121,38 +121,33 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       playbackHandleRef.current = null
 
       try {
-        console.log('[v0] Speaking:', text.slice(0, 50) + '...', 'lang:', lang)
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, language: lang }),
         })
         if (!res.ok) {
-          console.error('[v0] TTS API returned:', res.status)
           throw new Error(`TTS failed: ${res.status}`)
         }
 
         const buffer = await res.arrayBuffer()
-        console.log('[v0] Got audio buffer:', buffer.byteLength, 'bytes')
         
         // تم بدء جلسة أحدث أثناء الجلب → تجاهل
         if (session !== sessionRef.current) {
-          console.log('[v0] Session changed, ignoring')
           return
         }
 
         const handle = playWithAmplitude(buffer, setAmplitude)
         playbackHandleRef.current = handle
-        console.log('[v0] Waiting for audio to finish...')
         await handle.finished
-        console.log('[v0] Audio finished')
       } catch (error) {
-        console.error('[v0] ElevenLabs voice failed, using browser voice:', error)
-        if (session !== sessionRef.current) return
-        await speakWithBrowser(text, lang)
+        console.error('[v0] TTS error:', error)
+        // بدل fallback: فقط ننتظر قليل ثم نستمر
+        // لا نستخدم browser voice لتجنب تغير الصوت
+        await new Promise(resolve => setTimeout(resolve, 1500))
       }
     },
-    [speakWithBrowser]
+    []
   )
 
   // تشغيل ترحيب اللغة عند التحميل (بنفس لغة التطبيق الحالية)
@@ -164,18 +159,21 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
     const run = async () => {
       setSpeaking(true)
       try {
-        // أضف timeout: أقصى 6 ثواني للصوت الترحيبي
-        await Promise.race([
-          speak(GREETING_MESSAGES[language], language),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('TTS timeout')), 6000))
-        ])
+        await speak(GREETING_MESSAGES[language], language)
       } catch (error) {
-        // خطأ أو timeout - لا تهمنا، ننتقل إلى الخطوة التالية
+        console.error('[v0] Greeting error:', error)
       }
+      
       if (cancelled) return
-      setSpeaking(false)
-      setAmplitude(0)
-      setShowMicrophone(true)
+      
+      // قصير timeout بدل انتظار الصوت اللانهائي
+      setTimeout(() => {
+        if (!cancelled) {
+          setSpeaking(false)
+          setAmplitude(0)
+          setShowMicrophone(true)
+        }
+      }, 3000)
     }
     run()
     
@@ -227,22 +225,22 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
         }}
       />
 
+      {/* Avatar floating in top-right corner */}
+      <motion.div
+        className="absolute top-8 right-8 pointer-events-none"
+        animate={{ scale: speaking ? 1.08 : 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      >
+        <TalkingAvatar
+          amplitude={amplitude}
+          speaking={speaking}
+          size={120}
+          src="/avatar.png"
+        />
+      </motion.div>
+
       {/* Main content container */}
       <div className="relative z-10 w-full max-w-2xl">
-        {/* Avatar Section - positioned above content */}
-        <motion.div
-          className="flex justify-center mb-8 sm:mb-12 relative z-50"
-          animate={{ scale: speaking ? 1.05 : 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        >
-          <TalkingAvatar
-            amplitude={amplitude}
-            speaking={speaking}
-            size={280}
-            src="/avatar.png"
-          />
-        </motion.div>
-
         {/* Title and Instructions */}
         <motion.div
           className="text-center mb-12 sm:mb-16"

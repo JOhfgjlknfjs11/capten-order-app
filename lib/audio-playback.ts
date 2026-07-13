@@ -182,15 +182,34 @@ export function playWithAmplitude(
           audio.play().then(() => {
             rafId = requestAnimationFrame(fakeTick)
             
-            // timeout as backup in case onended doesn't fire
-            const duration = audio.duration * 1000
+            // Wait for metadata to load for accurate duration, or use a fallback timeout
+            const checkDuration = () => {
+              if (audio.duration && audio.duration > 0) {
+                // Got accurate duration - schedule timeout
+                const duration = audio.duration * 1000
+                setTimeout(() => {
+                  if (!audioEnded && !stopped) {
+                    audioEnded = true
+                    URL.revokeObjectURL(url)
+                    stop()
+                  }
+                }, duration + 500)
+              } else {
+                // Duration not yet loaded - retry in 100ms
+                setTimeout(checkDuration, 100)
+              }
+            }
+            
+            // Fallback: max 10 seconds
             setTimeout(() => {
               if (!audioEnded && !stopped) {
                 audioEnded = true
                 URL.revokeObjectURL(url)
                 stop()
               }
-            }, duration + 200)
+            }, 10000)
+            
+            checkDuration()
           }).catch((err) => {
             console.error('[v0] Audio play failed:', err)
             if (!audioEnded && !stopped) {
