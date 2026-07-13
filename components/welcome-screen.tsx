@@ -112,22 +112,21 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
       />
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        {/* Talking Avatar */}
+      <div
+        className={`relative z-10 flex flex-col items-center px-8 ${dict.rtl ? 'rtl' : 'ltr'}`}
+        dir={dict.rtl ? 'rtl' : 'ltr'}
+      >
+        {/* Talking Avatar - positioned above all text */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="mb-8"
+          className="mb-12"
         >
           <TalkingAvatar amplitude={amplitude} speaking={speaking} size={200} />
         </motion.div>
-      </div>
 
-      <div
-        className={`relative z-10 text-center px-8 max-w-lg ${dict.rtl ? 'rtl' : 'ltr'}`}
-        dir={dict.rtl ? 'rtl' : 'ltr'}
-      >
+        <div className="text-center max-w-lg">
         {/* Anchor ornament */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
@@ -230,6 +229,7 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
             />
           ))}
         </motion.div>
+        </div>
       </div>
     </div>
   )
