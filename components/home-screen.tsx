@@ -120,7 +120,7 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
   }, [finishGreeting])
 
   // الترحيب: يستخدم صوت ElevenLabs الاحترافي أولًا، وعند الفشل صوت المتصفح
-  const greet = useCallback(() => {
+  const greet = useCallback(async () => {
     const session = ++greetSessionRef.current
 
     // إيقاف أي صوت/حركة سابقة
@@ -137,7 +137,6 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
     hasSpokenRef.current = true
     setSpeaking(true)
     setShowCaption(true)
-<<<<<<< HEAD
     try {
       const buffer = await textToSpeech(HOME_GREETING, { language: 'en' })
       // لو الصوت متاح: شغّله مع تحليل مستوى الصوت.
@@ -163,37 +162,6 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
       setReady(true)
     }
   }, [stopSpeaking])
-=======
->>>>>>> origin/main
-
-    const run = async () => {
-      try {
-        const res = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: HOME_GREETING, language: 'en' }),
-        })
-        if (!res.ok) throw new Error(`TTS failed: ${res.status}`)
-
-        const buffer = await res.arrayBuffer()
-        // إن تم بدء جلسة أحدث أثناء الجلب، نتجاهل هذه النتيجة
-        if (session !== greetSessionRef.current) return
-
-        const handle = playWithAmplitude(buffer, setAmplitude)
-        playbackRef.current = handle
-        handle.finished.then(() => {
-          if (session === greetSessionRef.current) finishGreeting()
-        })
-      } catch (error) {
-        console.error('[v0] ElevenLabs greeting failed, using browser voice:', error)
-        if (session !== greetSessionRef.current) return
-        // رجوع لصوت المتصفح المدمج
-        speakWithBrowser()
-      }
-    }
-
-    run()
-  }, [finishGreeting, speakWithBrowser])
 
   // تشغيل الترحيب عند التحميل + حل لتجاوز حظر التشغيل التلقائي بالمتصفح
   useEffect(() => {
