@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { type Language, dictionary } from '@/lib/dictionary'
+import { textToSpeech } from '@/lib/text-to-speech'
+import { playWithAmplitude } from '@/lib/audio-playback'
+import { TalkingAvatar } from './talking-avatar'
 
 interface WelcomeScreenProps {
   language: Language
@@ -11,11 +14,66 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
   const dict = dictionary[language]
+  const [amplitude, setAmplitude] = useState(0)
+  const [speaking, setSpeaking] = useState(false)
+  const audioHandleRef = useRef<{ stop: () => void } | null>(null)
+  const hasPlayedRef = useRef(false)
+
+  // Welcome messages in multiple languages
+  const WELCOME_MESSAGES: Record<Language, string> = {
+    en: "Welcome to our restaurant! We're excited to serve you today.",
+    ar: 'أهلاً وسهلاً بك في مطعمنا! نحن متحمسون لخدمتك اليوم.',
+    ru: 'Добро пожаловать в наш ресторан! Мы рады вас видеть.',
+    fr: 'Bienvenue dans notre restaurant! Nous sommes ravis de vous servir.',
+    de: 'Willkommen in unserem Restaurant! Wir freuen uns, Sie zu bedienen.',
+    it: 'Benvenuto nel nostro ristorante! Siamo entusiasti di servirti.',
+    es: '¡Bienvenido a nuestro restaurante! Estamos emocionados de servirle.',
+    zh: '欢迎来到我们的餐厅! 我们很高兴为您服务。',
+    ja: 'レストランへようこそ！本日はお客様にお役立てします。',
+    pt: 'Bem-vindo ao nosso restaurante! Estamos animados em servi-lo.',
+    tr: 'Restoranımıza hoş geldiniz! Sizi hizmet etmekten heyecan duyuyoruz.',
+    ko: '저희 레스토랑에 오신 것을 환영합니다! 오늘 봉사하게 되어 기쁩니다.',
+  }
 
   useEffect(() => {
-    const timer = setTimeout(onComplete, 2800)
-    return () => clearTimeout(timer)
-  }, [onComplete])
+    if (hasPlayedRef.current) return
+    hasPlayedRef.current = true
+
+    const run = async () => {
+      try {
+        // Play welcome message with avatar animation
+        const welcomeText = WELCOME_MESSAGES[language]
+        const audioBuffer = await textToSpeech(welcomeText, {
+          language,
+          voiceId: 'hpp4J3VqNfWAUOO0d1Us',
+        })
+
+        if (audioBuffer) {
+          setSpeaking(true)
+          const handle = playWithAmplitude(audioBuffer, (level) => {
+            setAmplitude(level)
+          })
+          audioHandleRef.current = handle
+
+          // Wait for audio to finish
+          await handle.finished
+          setSpeaking(false)
+        }
+      } catch (error) {
+        console.error('[v0] Welcome audio error:', error)
+      }
+
+      // Complete after audio + animation time
+      const timer = setTimeout(onComplete, 800)
+      return () => clearTimeout(timer)
+    }
+
+    const cleanup = run()
+    return () => {
+      if (cleanup instanceof Function) cleanup()
+      audioHandleRef.current?.stop()
+    }
+  }, [language, onComplete])
 
   return (
     <div className="min-h-screen flex items-center justify-center overflow-hidden">
@@ -44,6 +102,18 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
         }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
       />
+
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        {/* Talking Avatar */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="mb-8"
+        >
+          <TalkingAvatar amplitude={amplitude} speaking={speaking} size={200} />
+        </motion.div>
+      </div>
 
       <div
         className={`relative z-10 text-center px-8 max-w-lg ${dict.rtl ? 'rtl' : 'ltr'}`}
