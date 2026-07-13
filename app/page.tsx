@@ -177,8 +177,6 @@ export default function CaptenOrderApp() {
             />
           </motion.div>
         )}
-
-
       </AnimatePresence>
 
 

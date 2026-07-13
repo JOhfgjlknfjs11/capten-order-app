@@ -9,7 +9,6 @@ interface TrackingViewProps {
   orderNumber: string
   onNewOrder: () => void
   onOrderComplete?: () => void
-  onChat?: () => void
 }
 
 const TOTAL_SECONDS = 25 * 60
@@ -25,7 +24,7 @@ function getStatusIndex(secondsLeft: number): number {
   return 2
 }
 
-export function TrackingView({ language, orderNumber, onNewOrder, onOrderComplete, onChat }: TrackingViewProps) {
+export function TrackingView({ language, orderNumber, onNewOrder, onOrderComplete }: TrackingViewProps) {
   const dict = dictionary[language]
   const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS)
   const [isDone, setIsDone] = useState(false)
@@ -353,47 +352,25 @@ export function TrackingView({ language, orderNumber, onNewOrder, onOrderComplet
         </p>
       </motion.div>
 
-      {/* Action buttons */}
-      <div className="flex gap-4 justify-center flex-wrap">
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          onClick={onNewOrder}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          className="px-8 py-3.5 rounded-2xl font-body font-semibold text-sm transition-all"
-          style={{
-            background: 'oklch(0.99 0.004 85)',
-            color: 'oklch(0.42 0.09 210)',
-            boxShadow:
-              '6px 6px 16px oklch(0.84 0.012 80), -3px -3px 10px oklch(1 0.003 90)',
-            border: '1px solid oklch(0.42 0.09 210 / 0.2)',
-          }}
-        >
-          + {dict.newOrder}
-        </motion.button>
-
-        {onChat && (
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            onClick={onChat}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="px-8 py-3.5 rounded-2xl font-body font-semibold text-sm transition-all"
-            style={{
-              background: 'oklch(0.42 0.09 210)',
-              color: '#fff',
-              boxShadow:
-                '0 8px 24px oklch(0.42 0.09 210 / 0.4)',
-            }}
-          >
-            💬 {language === 'ar' ? 'تحدث معي' : 'Chat with Me'}
-          </motion.button>
-        )}
-      </div>
+      {/* New order button */}
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+        onClick={onNewOrder}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.97 }}
+        className="px-8 py-3.5 rounded-2xl font-body font-semibold text-sm transition-all"
+        style={{
+          background: 'oklch(0.99 0.004 85)',
+          color: 'oklch(0.42 0.09 210)',
+          boxShadow:
+            '6px 6px 16px oklch(0.84 0.012 80), -3px -3px 10px oklch(1 0.003 90)',
+          border: '1px solid oklch(0.42 0.09 210 / 0.2)',
+        }}
+      >
+        + {dict.newOrder}
+      </motion.button>
     </div>
   )
 }

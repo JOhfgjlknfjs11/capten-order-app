@@ -29,10 +29,15 @@ export function useGeminiMenu(options: UseGeminiMenuOptions = {}) {
         }
 
         const data = await response.json()
-        return data.description || itemName
+        if (!data.description) {
+          throw new Error('No description returned')
+        }
+        return data.description
       } catch (error) {
         console.error('[v0] Error getting item description:', error)
-        return itemName
+        // Re-throw so callers (e.g. GeminiFoodCard) can fall back to the
+        // built-in local description instead of showing the raw item name.
+        throw error instanceof Error ? error : new Error('Failed to get description')
       }
     },
     [language]
