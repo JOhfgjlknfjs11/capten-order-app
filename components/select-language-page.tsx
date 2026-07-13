@@ -5,8 +5,16 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 import { TalkingAvatar } from '@/components/talking-avatar'
+<<<<<<< HEAD
 import { playWithAmplitude, simulateSpeech } from '@/lib/audio-playback'
 import { textToSpeech } from '@/lib/text-to-speech'
+=======
+import {
+  playWithAmplitude,
+  simulateSpeech,
+  type AmplitudePlaybackHandle,
+} from '@/lib/audio-playback'
+>>>>>>> origin/main
 import { GREETING_MESSAGES } from '@/lib/text-to-speech'
 import { translateAndSpeak } from '@/hooks/use-translate-and-speak'
 import { MicrophoneButton } from '@/components/microphone-button'
@@ -32,6 +40,38 @@ const FLAG_CODE: Record<Language, string> = {
   ko: 'kr',
 }
 
+// Map language → BCP-47 tag for the browser speech fallback
+const BROWSER_LANG: Record<Language, string> = {
+  en: 'en-US',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  it: 'it-IT',
+  es: 'es-ES',
+  zh: 'zh-CN',
+  ja: 'ja-JP',
+  pt: 'pt-BR',
+  tr: 'tr-TR',
+  ko: 'ko-KR',
+}
+
+// رسالة تأكيد الاختيار — منطوقة بنفس اللغة التي اختارها الضيف
+const CONFIRM_MESSAGES: Record<Language, string> = {
+  en: "Perfect! You've selected English. Let's get started.",
+  ar: 'ممتاز! لقد اخترت العربية. لنبدأ.',
+  ru: 'Отлично! Вы выбрали русский. Начнём.',
+  fr: 'Parfait ! Vous avez choisi le français. Commençons.',
+  de: 'Perfekt! Sie haben Deutsch gewählt. Fangen wir an.',
+  it: 'Perfetto! Hai scelto l\'italiano. Iniziamo.',
+  es: '¡Perfecto! Has elegido español. Empecemos.',
+  zh: '太好了！您选择了中文。我们开始吧。',
+  ja: '素晴らしい！日本語を選びました。始めましょう。',
+  pt: 'Perfeito! Você escolheu português. Vamos começar.',
+  tr: 'Harika! Türkçeyi seçtiniz. Başlayalım.',
+  ko: '완벽해요! 한국어를 선택하셨습니다. 시작할까요.',
+}
+
 function FlagImg({ lang, size = 32 }: { lang: Language; size?: number }) {
   const code = FLAG_CODE[lang]
   return (
@@ -52,19 +92,117 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
   const [speaking, setSpeaking] = useState(false)
   const [selectedLang, setSelectedLang] = useState<Language | null>(null)
   const [showMicrophone, setShowMicrophone] = useState(false)
-  const playbackHandleRef = useRef<any>(null)
+  const playbackHandleRef = useRef<AmplitudePlaybackHandle | null>(null)
   const hasPlayedGreetingRef = useRef(false)
-  const microphoneKeyRef = useRef(0) // Key to force remount/restart of microphone
+  const microphoneKeyRef = useRef(0)
+  // معرّف الجلسة الحالية لإبطال أي طلب صوت سابق
+  const sessionRef = useRef(0)
 
-  // Play greeting when component mounts
+  // إيقاف أي صوت/حركة جارية
+  const stopPlayback = useCallback(() => {
+    sessionRef.current++
+    playbackHandleRef.current?.stop()
+    playbackHandleRef.current = null
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel()
+      } catch {}
+    }
+  }, [])
+
+  // نطق نص عبر صوت المتصفح (احتياطي) — يُرجع Promise ينتهي مع انتهاء الكلام
+  const speakWithBrowser = useCallback((text: string, lang: Language) => {
+    return new Promise<void>((resolve) => {
+      const synth =
+        typeof window !== 'undefined' && 'speechSynthesis' in window
+          ? window.speechSynthesis
+          : null
+
+      // بدون دعم النطق: حركة فم تقديرية فقط
+      if (!synth) {
+        const handle = simulateSpeech(text, setAmplitude)
+        playbackHandleRef.current = handle
+        handle.finished.then(() => resolve())
+        return
+      }
+
+      try {
+        synth.cancel()
+      } catch {}
+
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = BROWSER_LANG[lang] || 'en-US'
+      utterance.rate = 0.95
+      utterance.pitch = 1
+      const voices = synth.getVoices()
+      const match = voices.find((v) =>
+        v.lang?.toLowerCase().startsWith((BROWSER_LANG[lang] || 'en').slice(0, 2))
+      )
+      if (match) utterance.voice = match
+
+      // حركة الفم أثناء الكلام
+      const handle = simulateSpeech(text, setAmplitude)
+      playbackHandleRef.current = handle
+
+      utterance.onend = () => resolve()
+      utterance.onerror = () => resolve()
+
+      try {
+        synth.speak(utterance)
+      } catch {
+        resolve()
+      }
+    })
+  }, [])
+
+  // نطق نص عبر ElevenLabs بنفس اللغة، مع رجوع لصوت المتصفح عند الفشل
+  const speak = useCallback(
+    async (text: string, lang: Language) => {
+      const session = ++sessionRef.current
+      playbackHandleRef.current?.stop()
+      playbackHandleRef.current = null
+
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, language: lang }),
+        })
+        if (!res.ok) throw new Error(`TTS failed: ${res.status}`)
+
+        const buffer = await res.arrayBuffer()
+        // تم بدء جلسة أحدث أثناء الجلب → تجاهل
+        if (session !== sessionRef.current) return
+
+        const handle = playWithAmplitude(buffer, setAmplitude)
+        playbackHandleRef.current = handle
+        await handle.finished
+      } catch (error) {
+        console.error('[v0] ElevenLabs voice failed, using browser voice:', error)
+        if (session !== sessionRef.current) return
+        await speakWithBrowser(text, lang)
+      }
+    },
+    [speakWithBrowser]
+  )
+
+  // تشغيل ترحيب اللغة عند التحميل (بنفس لغة التطبيق الحالية)
   useEffect(() => {
     if (hasPlayedGreetingRef.current) return
     hasPlayedGreetingRef.current = true
 
-    const playGreeting = async () => {
+    let cancelled = false
+    const run = async () => {
       setSpeaking(true)
-      const greetingText = GREETING_MESSAGES[language]
+      await speak(GREETING_MESSAGES[language], language)
+      if (cancelled) return
+      setSpeaking(false)
+      setAmplitude(0)
+      setShowMicrophone(true)
+    }
+    run()
 
+<<<<<<< HEAD
       try {
         // Use translateAndSpeak to translate and speak in the selected language
         const buffer = await translateAndSpeak(greetingText, language, 'wWWn96OtTHu1sn8SRGEr')
@@ -82,15 +220,34 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       } catch (error) {
         console.error('[v0] Error playing greeting:', error)
       } finally {
+=======
+    return () => {
+      cancelled = true
+      stopPlayback()
+    }
+  }, [language, speak, stopPlayback])
+
+  const handleLanguageClick = useCallback(
+    (lang: Language) => {
+      // إيقاف أي صوت جارٍ
+      stopPlayback()
+
+      setSelectedLang(lang)
+      setSpeaking(true)
+
+      const run = async () => {
+        // نطق التأكيد بنفس اللغة المختارة
+        await speak(CONFIRM_MESSAGES[lang] || CONFIRM_MESSAGES.en, lang)
+>>>>>>> origin/main
         setSpeaking(false)
         setAmplitude(0)
-        // Show microphone after greeting finishes
-        setShowMicrophone(true)
+        // المتابعة بعد انتهاء النطق
+        setTimeout(() => onSelect(lang), 300)
       }
-    }
-
-    playGreeting()
-  }, [language])
+      run()
+    },
+    [onSelect, speak, stopPlayback]
+  )
 
   const handleLanguageDetected = useCallback(
     (detectedLang: Language) => {
@@ -98,6 +255,7 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
         handleLanguageClick(detectedLang)
       }
     },
+<<<<<<< HEAD
     [selectedLang]
   )
 
@@ -141,6 +299,9 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
       speakConfirmation()
     },
     [onSelect]
+=======
+    [selectedLang, handleLanguageClick]
+>>>>>>> origin/main
   )
 
   return (

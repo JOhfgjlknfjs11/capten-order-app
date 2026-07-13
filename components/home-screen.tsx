@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { TalkingAvatar } from '@/components/talking-avatar'
-import { textToSpeech } from '@/lib/text-to-speech'
 import {
   playWithAmplitude,
   simulateSpeech,
@@ -16,7 +15,7 @@ interface HomeScreenProps {
 
 // رسالة ترحيب إنجليزية دافئة يقولها الأفاتار عند فتح الصفحة الرئيسية
 const HOME_GREETING =
-  "Hello and welcome to Capten Order! I'm your personal dining host. Let's get you seated and ready to explore our finest Red Sea flavors. Tap Start when you're ready."
+  "Hello and welcome to Capten Order! I'm your personal dining host. Let's get you seated and ready to explore our finest flavors. Tap Start when you're ready."
 
 export function HomeScreen({ onStart }: HomeScreenProps) {
   const [amplitude, setAmplitude] = useState(0)
@@ -27,20 +26,118 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
 
   const playbackRef = useRef<AmplitudePlaybackHandle | null>(null)
   const hasGreetedRef = useRef(false)
+  const hasSpokenRef = useRef(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  // معرّف الجلسة الحالية لتجاهل نتائج الطلبات الملغاة (سباق الطلبات)
+  const greetSessionRef = useRef(0)
 
   const stopSpeaking = useCallback(() => {
+    // إبطال أي طلب TTS قيد التنفيذ
+    greetSessionRef.current++
     playbackRef.current?.stop()
     playbackRef.current = null
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel()
+      } catch {}
+    }
+    utteranceRef.current = null
     setSpeaking(false)
     setAmplitude(0)
     setShowCaption(false)
   }, [])
 
-  const greet = useCallback(async () => {
-    stopSpeaking()
+  // ينهي الترحيب: يوقف حركة الفم ويجعل الواجهة جاهزة
+  const finishGreeting = useCallback(() => {
+    playbackRef.current?.stop()
+    playbackRef.current = null
+    utteranceRef.current = null
+    setSpeaking(false)
+    setAmplitude(0)
+    setShowCaption(false)
+    setReady(true)
+  }, [])
+
+  // النطق عبر صوت المتصفح المدمج (احتياطي عند فشل ElevenLabs)
+  const speakWithBrowser = useCallback(() => {
+    const synth =
+      typeof window !== 'undefined' && 'speechSynthesis' in window
+        ? window.speechSynthesis
+        : null
+
+    // المتصفح لا يدعم النطق: نعرض الحركة فقط ثم نجعل الواجهة جاهزة
+    if (!synth) {
+      hasSpokenRef.current = true
+      setSpeaking(true)
+      setShowCaption(true)
+      playbackRef.current?.stop()
+      const handle = simulateSpeech(HOME_GREETING, setAmplitude)
+      playbackRef.current = handle
+      handle.finished.then(finishGreeting)
+      return
+    }
+
+    // إلغاء أي كلام سابق قبل البدء من جديد
+    try {
+      synth.cancel()
+    } catch {}
+    playbackRef.current?.stop()
+    playbackRef.current = null
+
+    const utterance = new SpeechSynthesisUtterance(HOME_GREETING)
+    utterance.lang = 'en-US'
+    utterance.rate = 0.95
+    utterance.pitch = 1
+
+    // اختيار صوت إنجليزي إن وُجد لجودة نطق أفضل
+    const voices = synth.getVoices()
+    const enVoice = voices.find((v) => v.lang?.toLowerCase().startsWith('en'))
+    if (enVoice) utterance.voice = enVoice
+
+    utteranceRef.current = utterance
+
+    // نربط حركة الفم و"Speaking" ببدء الكلام الفعلي لا بمؤقّت أعمى
+    utterance.onstart = () => {
+      hasSpokenRef.current = true
+      setSpeaking(true)
+      setShowCaption(true)
+      playbackRef.current?.stop()
+      playbackRef.current = simulateSpeech(HOME_GREETING, setAmplitude)
+    }
+    utterance.onend = () => {
+      if (utteranceRef.current === utterance) finishGreeting()
+    }
+    utterance.onerror = () => {
+      if (utteranceRef.current === utterance) finishGreeting()
+    }
+
+    try {
+      synth.speak(utterance)
+    } catch {
+      finishGreeting()
+    }
+  }, [finishGreeting])
+
+  // الترحيب: يستخدم صوت ElevenLabs الاحترافي أولًا، وعند الفشل صوت المتصفح
+  const greet = useCallback(() => {
+    const session = ++greetSessionRef.current
+
+    // إيقاف أي صوت/حركة سابقة
+    playbackRef.current?.stop()
+    playbackRef.current = null
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel()
+      } catch {}
+    }
+    utteranceRef.current = null
+
+    // إظهار الحالة فورًا أثناء جلب الصوت
+    hasSpokenRef.current = true
     setSpeaking(true)
     setShowCaption(true)
+<<<<<<< HEAD
     try {
       const buffer = await textToSpeech(HOME_GREETING, { language: 'en' })
       // لو الصوت متاح: شغّله مع تحليل مستوى الصوت.
@@ -66,17 +163,76 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
       setReady(true)
     }
   }, [stopSpeaking])
+=======
+>>>>>>> origin/main
 
-  // تشغيل الترحيب مرة واحدة عند التحميل
+    const run = async () => {
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: HOME_GREETING, language: 'en' }),
+        })
+        if (!res.ok) throw new Error(`TTS failed: ${res.status}`)
+
+        const buffer = await res.arrayBuffer()
+        // إن تم بدء جلسة أحدث أثناء الجلب، نتجاهل هذه النتيجة
+        if (session !== greetSessionRef.current) return
+
+        const handle = playWithAmplitude(buffer, setAmplitude)
+        playbackRef.current = handle
+        handle.finished.then(() => {
+          if (session === greetSessionRef.current) finishGreeting()
+        })
+      } catch (error) {
+        console.error('[v0] ElevenLabs greeting failed, using browser voice:', error)
+        if (session !== greetSessionRef.current) return
+        // رجوع لصوت المتصفح المدمج
+        speakWithBrowser()
+      }
+    }
+
+    run()
+  }, [finishGreeting, speakWithBrowser])
+
+  // تشغيل الترحيب عند التحميل + حل لتجاوز حظر التشغيل التلقائي بالمتصفح
   useEffect(() => {
     if (hasGreetedRef.current) return
     hasGreetedRef.current = true
-    // تأخير بسيط للسماح بظهور الواجهة أولاً
-    const t = setTimeout(() => {
-      greet()
-    }, 700)
+
+    const synth =
+      typeof window !== 'undefined' && 'speechSynthesis' in window
+        ? window.speechSynthesis
+        : null
+
+    let cancelled = false
+    const tryGreet = () => {
+      if (!cancelled) greet()
+    }
+
+    // بعض المتصفحات تحمّل قائمة الأصوات بشكل غير متزامن
+    if (synth && synth.getVoices().length === 0) {
+      synth.addEventListener?.('voiceschanged', tryGreet, { once: true })
+    }
+
+    // محاولة تلقائية بعد ظهور الواجهة (قد يحظرها المتصفح)
+    const t = setTimeout(tryGreet, 700)
+
+    // احتياطي: أول تفاعل من المستخدم يشغّل الترحيب فعليًا بالصوت
+    const onFirstInteract = () => {
+      if (!hasSpokenRef.current) greet()
+    }
+    window.addEventListener('pointerdown', onFirstInteract)
+    window.addEventListener('keydown', onFirstInteract)
+    window.addEventListener('touchstart', onFirstInteract)
+
     return () => {
+      cancelled = true
       clearTimeout(t)
+      window.removeEventListener('pointerdown', onFirstInteract)
+      window.removeEventListener('keydown', onFirstInteract)
+      window.removeEventListener('touchstart', onFirstInteract)
+      synth?.removeEventListener?.('voiceschanged', tryGreet)
       stopSpeaking()
     }
   }, [greet, stopSpeaking])
@@ -217,7 +373,7 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
           Capten Order
         </h1>
         <p className="font-body text-base text-muted-foreground leading-relaxed text-pretty">
-          Your personal dining host is here to guide you through a luxury Red Sea
+          Your personal dining host is here to guide you through a luxury dining
           experience.
         </p>
       </motion.div>
@@ -286,7 +442,11 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
         transition={{ delay: 1 }}
         className="relative z-10 mt-6 text-xs text-muted-foreground h-4"
       >
-        {speaking ? 'Speaking…' : ready ? 'Tap Start to choose your language' : ''}
+        {speaking
+          ? 'Speaking…'
+          : ready
+            ? 'Tap Start to choose your language'
+            : 'Tap anywhere to hear your host'}
       </motion.p>
     </div>
   )
