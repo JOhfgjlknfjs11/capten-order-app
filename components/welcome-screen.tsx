@@ -41,12 +41,16 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
 
     const run = async () => {
       try {
+        console.log('[v0] Starting welcome audio for language:', language)
+        
         // Play welcome message with avatar animation
         const welcomeText = WELCOME_MESSAGES[language]
         const audioBuffer = await textToSpeech(welcomeText, {
           language,
           voiceId: 'hpp4J3VqNfWAUOO0d1Us',
         })
+
+        console.log('[v0] Got audio buffer, playing now...')
 
         if (audioBuffer) {
           setSpeaking(true)
@@ -57,20 +61,25 @@ export function WelcomeScreen({ language, onComplete }: WelcomeScreenProps) {
 
           // Wait for audio to finish
           await handle.finished
+          console.log('[v0] Audio finished playing')
           setSpeaking(false)
+          
+          // Small delay after audio completes
+          await new Promise(resolve => setTimeout(resolve, 500))
         }
       } catch (error) {
         console.error('[v0] Welcome audio error:', error)
+        // Still proceed to next step even if audio fails
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
 
-      // Complete after audio + animation time
-      const timer = setTimeout(onComplete, 800)
-      return () => clearTimeout(timer)
+      console.log('[v0] Completing welcome screen')
+      onComplete()
     }
 
-    const cleanup = run()
+    run()
+    
     return () => {
-      if (cleanup instanceof Function) cleanup()
       audioHandleRef.current?.stop()
     }
   }, [language, onComplete])

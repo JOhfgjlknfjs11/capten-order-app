@@ -134,6 +134,15 @@ export function playWithAmplitude(
         }
       }
 
+      // Also set a timeout as backup in case onended doesn't fire
+      const duration = (decoded.length / decoded.sampleRate) * 1000
+      setTimeout(() => {
+        if (!stopped) {
+          stopped = true
+          cleanup()
+        }
+      }, duration + 100)
+
       source.start(0)
       rafId = requestAnimationFrame(tick)
     } catch {
