@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { type Language, LANGUAGES, dictionary } from '@/lib/dictionary'
 import { TalkingAvatar } from '@/components/talking-avatar'
-import { simulateSpeech } from '@/lib/audio-playback'
+import { simulateSpeech, playWithAmplitude, type AmplitudePlaybackHandle } from '@/lib/audio-playback'
 import { GREETING_MESSAGES } from '@/lib/text-to-speech'
 import { MicrophoneButton } from '@/components/microphone-button'
 
@@ -193,13 +193,32 @@ export function SelectLanguagePage({ onSelect, language = 'en' }: SelectLanguage
     run()
   }, [language])
 
+  const handleLanguageClick = useCallback(
+    async (lang: Language) => {
+      stopPlayback()
+      setSelectedLang(lang)
+      setSpeaking(true)
+      
+      // Play confirmation message in selected language
+      await speak(CONFIRM_MESSAGES[lang], lang)
+      
+      setSpeaking(false)
+      setAmplitude(0)
+      
+      // Delay before transition to welcome screen
+      await new Promise(resolve => setTimeout(resolve, 500))
+      onSelect(lang)
+    },
+    [speak, stopPlayback, onSelect]
+  )
+
   const handleLanguageDetected = useCallback(
     (detectedLang: Language) => {
       if (selectedLang === null) {
-        onSelect(detectedLang)
+        handleLanguageClick(detectedLang)
       }
     },
-    [selectedLang, onSelect]
+    [selectedLang, handleLanguageClick]
   )
 
   return (

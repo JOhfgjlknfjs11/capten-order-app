@@ -134,6 +134,15 @@ export function playWithAmplitude(
         }
       }
 
+      // Also set a timeout as backup in case onended doesn't fire
+      const duration = (decoded.length / decoded.sampleRate) * 1000
+      setTimeout(() => {
+        if (!stopped) {
+          stopped = true
+          cleanup()
+        }
+      }, duration + 100)
+
       source.start(0)
       rafId = requestAnimationFrame(tick)
     } catch {
@@ -158,7 +167,44 @@ export function playWithAmplitude(
         }
         audio.play().then(() => {
           rafId = requestAnimationFrame(fakeTick)
-        }).catch(() => stop())
+          
+          // حساب مدة الصوت بدقة
+          const checkDuration = () => {
+            if (audio.duration && audio.duration > 0) {
+              // عندما نعرف المدة، حدد timeout للإيقاف
+              setTimeout(() => {
+                if (!stopped) {
+                  stopped = true
+                  cleanup()
+                }
+              }, (audio.duration * 1000) + 500)
+            } else {
+              // حاول مرة أخرى بعد قليل
+              setTimeout(checkDuration, 100)
+            }
+          }
+          checkDuration()
+          
+          // fallback: أقصى 15 ثانية
+          setTimeout(() => {
+            if (!stopped) {
+              stopped = true
+              cleanup()
+            }
+          }, 15000)
+        }).catch(() => {
+          // إذا فشل التشغيل، استخدم محاكاة
+          if (!stopped) {
+            stopped = false
+            const handle = simulateSpeech(audioBuffer.toString(), onAmplitude)
+            handle.finished.then(() => {
+              if (!stopped) {
+                stopped = true
+                cleanup()
+              }
+            })
+          }
+        })
       } catch {
         stop()
       }
